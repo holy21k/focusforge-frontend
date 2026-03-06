@@ -5,27 +5,18 @@ const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Initialize auth from localStorage
   useEffect(() => {
     const initAuth = async () => {
       const token = localStorage.getItem('token');
-      if (!token) {
-        // TEMPORARILY DISABLED AUTH FOR DEMO - Sets default user
-        setUser({ id: 1, username: 'demo_user', email: 'demo@example.com' });
-        setLoading(false);
-        return;
-      }
+      if (!token) { setLoading(false); return; }
       try {
         const userData = await authApi.getMe();
         setUser(userData);
       } catch (err) {
-        console.error('Failed to fetch user', err);
         localStorage.removeItem('token');
-        // TEMPORARILY DISABLED AUTH FOR DEMO - Sets default user on error
-        setUser({ id: 1, username: 'demo_user', email: 'demo@example.com' });
       } finally {
         setLoading(false);
       }
@@ -33,55 +24,47 @@ export const AuthProvider = ({ children }) => {
     initAuth();
   }, []);
 
-  // LOGIN
   const login = async (email, password) => {
-    setLoading(true);
-    setError(null);
+    setLoading(true); setError(null);
     try {
-      // authApi.login returns data directly because axiosClient interceptors unwrap .data
       const data = await authApi.login({ email, password });
-      
-      // Save token
       localStorage.setItem('token', data.access_token);
-
-      // Fetch user info
       const userData = await authApi.getMe();
       setUser(userData);
     } catch (err) {
-      setError(err.response?.data?.detail || 'Login failed');
-      throw err;
-    } finally {
-      setLoading(false);
-    }
+      setError(err.message || 'Login failed'); throw err;
+    } finally { setLoading(false); }
   };
 
-  // REGISTER
   const register = async (username, email, password) => {
-    setLoading(true);
-    setError(null);
+    setLoading(true); setError(null);
     try {
       const data = await authApi.register({ username, email, password });
-
       localStorage.setItem('token', data.access_token);
-
       const userData = await authApi.getMe();
       setUser(userData);
     } catch (err) {
-      setError(err.response?.data?.detail || 'Registration failed');
-      throw err;
-    } finally {
-      setLoading(false);
-    }
+      setError(err.message || 'Registration failed'); throw err;
+    } finally { setLoading(false); }
   };
 
-  // LOGOUT
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('token');
+  const googleLogin = async (googleToken) => {
+    setLoading(true); setError(null);
+    try {
+      const data = await authApi.googleLogin(googleToken);
+      localStorage.setItem('token', data.access_token);
+      const userData = await authApi.getMe();
+      setUser(userData);
+    } catch (err) {
+      setError(err.message || 'Google login failed'); throw err;
+    } finally { setLoading(false); }
   };
+
+  const updateUser = (fields) => setUser((prev) => ({ ...prev, ...fields }));
+  const logout = () => { setUser(null); localStorage.removeItem('token'); };
 
   return (
-    <AuthContext.Provider value={{ user, loading, error, login, register, logout }}>
+    <AuthContext.Provider value={{ user, loading, error, login, register, googleLogin, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   );
