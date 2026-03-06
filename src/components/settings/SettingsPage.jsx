@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { User, Bell, Lock, Palette, Save, CheckCircle, AlertCircle, Moon, Sun, Volume2, VolumeX, Mail, AtSign, Camera, Upload, X } from 'lucide-react';
+import { User, Bell, Lock, Palette, Save, Moon, Sun, Volume2, VolumeX, Mail, AtSign, Camera, X } from 'lucide-react';
 import { useAuth } from '../../store/authStore';
 import { useUI } from '../../store/uiStore';
 import settingsApi from '../../api/settingsApi';
@@ -7,29 +7,31 @@ import Button from '../common/Button';
 import '../../styles/forms.css';
 import '../../styles/cards.css';
 
+const BACKEND = import.meta.env.VITE_API_URL?.replace('/api/v1', '') || 'http://localhost:8000';
+const buildAvatarUrl = (url) => {
+  if (!url) return null;
+  if (url.startsWith('http')) return url;
+  return `${BACKEND}${url}`;
+};
+
 const SettingsPage = () => {
-  const { user } = useAuth();
-  const { 
-    theme, setTheme, 
-    notificationsEnabled, toggleNotifications,
-    soundEnabled, toggleSound 
-  } = useUI();
+  const { user, updateUser } = useAuth();
+  const { theme, setTheme, notificationsEnabled, toggleNotifications, soundEnabled, toggleSound } = useUI();
 
   const [activeTab, setActiveTab] = useState('profile');
   const [loading, setLoading] = useState(false);
+  const [avatarLoading, setAvatarLoading] = useState(false);
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
   const [avatarPreview, setAvatarPreview] = useState(null);
   const fileInputRef = useRef(null);
 
-  // Profile form
   const [profileData, setProfileData] = useState({
     name: user?.name || '',
     username: user?.username || '',
     email: user?.email || '',
   });
 
-  // Password form
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
     newPassword: '',
@@ -43,33 +45,50 @@ const SettingsPage = () => {
         username: user.username || '',
         email: user.email || '',
       });
-      if (user.avatar_url || user.profile_photo) {
-        setAvatarPreview(user.avatar_url || user.profile_photo);
-      }
+      const url = buildAvatarUrl(user.avatar_url || user.profile_photo);
+      if (url) setAvatarPreview(url);
     }
   }, [user]);
 
-  const handleAvatarSelect = (e) => {
+  const showSuccess = (msg) => {
+    setSuccess(msg);
+    setError('');
+    setTimeout(() => setSuccess(''), 3000);
+  };
+
+  const showError = (msg) => {
+    setError(msg);
+    setSuccess('');
+  };
+
+  const handleAvatarSelect = async (e) => {
     const file = e.target.files[0];
-    if (file) {
-      // Create preview
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setAvatarPreview(reader.result);
-      };
-      reader.readAsDataURL(file);
-      
-      // TODO: Upload to server
-      setSuccess('Photo selected - save to apply');
-      setTimeout(() => setSuccess(''), 3000);
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => setAvatarPreview(reader.result);
+    reader.readAsDataURL(file);
+
+    setAvatarLoading(true);
+    try {
+      const result = await settingsApi.uploadAvatar(file);
+      const fullUrl = buildAvatarUrl(result.avatar_url);
+      setAvatarPreview(fullUrl);
+      updateUser({ avatar_url: result.avatar_url });
+      showSuccess('Profile photo updated!');
+    } catch (err) {
+      showError(err.message || 'Failed to upload photo');
+      const fallback = buildAvatarUrl(user?.avatar_url);
+      setAvatarPreview(fallback);
+    } finally {
+      setAvatarLoading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
   const handleRemoveAvatar = () => {
     setAvatarPreview(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const handleProfileSave = async () => {
@@ -77,11 +96,14 @@ const SettingsPage = () => {
     setSuccess('');
     setError('');
     try {
-      await settingsApi.updateProfile(profileData);
-      setSuccess('Profile updated successfully!');
-      setTimeout(() => setSuccess(''), 3000);
+      await settingsApi.updateProfile({
+        username: profileData.username || undefined,
+        email: profileData.email || undefined,
+      });
+      updateUser({ username: profileData.username, email: profileData.email });
+      showSuccess('Profile updated successfully!');
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to update profile');
+      showError(err.message || 'Failed to update profile');
     } finally {
       setLoading(false);
     }
@@ -89,14 +111,11 @@ const SettingsPage = () => {
 
   const handlePasswordChange = async () => {
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      setError('Passwords do not match');
-      return;
+      return showError('Passwords do not match');
     }
-    if (passwordData.newPassword.length < 8) {
-      setError('Password must be at least 8 characters');
-      return;
+    if (passwordData.newPassword.length < 6) {
+      return showError('Password must be at least 6 characters');
     }
-
     setLoading(true);
     setSuccess('');
     setError('');
@@ -105,11 +124,10 @@ const SettingsPage = () => {
         current_password: passwordData.currentPassword,
         new_password: passwordData.newPassword,
       });
-      setSuccess('Password changed successfully!');
       setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
-      setTimeout(() => setSuccess(''), 3000);
+      showSuccess('Password changed successfully!');
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to change password');
+      showError(err.message || 'Failed to change password');
     } finally {
       setLoading(false);
     }
@@ -134,7 +152,6 @@ const SettingsPage = () => {
           {success}
         </div>
       )}
-
       {error && (
         <div className="mb-4 p-3 bg-red-100 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded text-red-700 dark:text-red-400 text-sm">
           {error}
@@ -160,6 +177,7 @@ const SettingsPage = () => {
         </div>
 
         <div className="p-6 overflow-auto">
+
           {/* Profile Tab */}
           {activeTab === 'profile' && (
             <div className="space-y-8">
@@ -167,16 +185,17 @@ const SettingsPage = () => {
                 <h2 className="text-xl font-semibold text-zinc-800 dark:text-zinc-100">Profile Information</h2>
                 <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">Update your personal details</p>
               </div>
-              
-              {/* Avatar Section - Modern Style */}
+
+              {/* Avatar Section */}
               <div className="flex items-center gap-6 p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl">
                 <div className="relative">
                   {avatarPreview ? (
                     <div className="relative">
-                      <img 
-                        src={avatarPreview} 
-                        alt="Profile" 
+                      <img
+                        src={avatarPreview}
+                        alt="Profile"
                         className="w-20 h-20 rounded-full object-cover border-2 border-zinc-200 dark:border-zinc-700 shadow-md"
+                        onError={(e) => { e.target.style.display = 'none'; }}
                       />
                       <button
                         onClick={handleRemoveAvatar}
@@ -186,41 +205,49 @@ const SettingsPage = () => {
                       </button>
                     </div>
                   ) : (
-                    <div 
+                    <div
                       className="w-20 h-20 rounded-full bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center text-white text-2xl font-bold shadow-md cursor-pointer hover:opacity-90 transition-opacity"
                       onClick={() => fileInputRef.current?.click()}
                     >
-                      {profileData.name?.charAt(0)?.toUpperCase() || 'U'}
+                      {avatarLoading ? (
+                        <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        profileData.name?.charAt(0)?.toUpperCase() || 'U'
+                      )}
                     </div>
                   )}
                   <input
                     ref={fileInputRef}
                     type="file"
-                    accept="image/*"
+                    accept="image/jpeg,image/png,image/webp"
                     onChange={handleAvatarSelect}
                     className="hidden"
                   />
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-semibold text-lg text-zinc-800 dark:text-zinc-100">{profileData.name || 'Your Name'}</h3>
-                  <p className="text-sm text-zinc-500 dark:text-zinc-400">@{profileData.username || 'username'}</p>
+                  <h3 className="font-semibold text-lg text-zinc-800 dark:text-zinc-100">
+                    {profileData.name || 'Your Name'}
+                  </h3>
+                  <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                    @{profileData.username || 'username'}
+                  </p>
                   <div className="flex gap-2 mt-3">
                     <button
                       onClick={() => fileInputRef.current?.click()}
-                      className="flex items-center gap-2 px-3 py-1.5 bg-primary text-white text-sm rounded-lg hover:bg-primary/90 transition-colors"
+                      disabled={avatarLoading}
+                      className="flex items-center gap-2 px-3 py-1.5 bg-primary text-white text-sm rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
                     >
                       <Camera size={14} />
-                      Change
+                      {avatarLoading ? 'Uploading...' : 'Change'}
                     </button>
                   </div>
                 </div>
               </div>
-              
+
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
                   <label className="block text-sm font-medium mb-2 flex items-center gap-2">
-                    <AtSign size={14} />
-                    First Name
+                    <AtSign size={14} /> First Name
                   </label>
                   <input
                     type="text"
@@ -230,11 +257,9 @@ const SettingsPage = () => {
                     placeholder="Your first name"
                   />
                 </div>
-                
                 <div>
                   <label className="block text-sm font-medium mb-2 flex items-center gap-2">
-                    <AtSign size={14} />
-                    Username
+                    <AtSign size={14} /> Username
                   </label>
                   <input
                     type="text"
@@ -244,11 +269,9 @@ const SettingsPage = () => {
                     placeholder="@username"
                   />
                 </div>
-                
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium mb-2 flex items-center gap-2">
-                    <Mail size={14} />
-                    Email
+                    <Mail size={14} /> Email
                   </label>
                   <input
                     type="email"
@@ -275,42 +298,26 @@ const SettingsPage = () => {
                 <h2 className="text-lg font-semibold text-zinc-800 dark:text-zinc-100">Security</h2>
                 <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">Manage your account security</p>
               </div>
-              
               <div className="p-5 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-200 mb-2">Current Password</label>
-                  <input
-                    type="password"
-                    className="form-input"
-                    value={passwordData.currentPassword}
+                  <input type="password" className="form-input" value={passwordData.currentPassword}
                     onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
-                    placeholder="Enter current password"
-                  />
+                    placeholder="Enter current password" />
                 </div>
-                
                 <div>
                   <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-200 mb-2">New Password</label>
-                  <input
-                    type="password"
-                    className="form-input"
-                    value={passwordData.newPassword}
+                  <input type="password" className="form-input" value={passwordData.newPassword}
                     onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
-                    placeholder="Enter new password"
-                  />
+                    placeholder="Enter new password" />
                 </div>
-                
                 <div>
                   <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-200 mb-2">Confirm New Password</label>
-                  <input
-                    type="password"
-                    className="form-input"
-                    value={passwordData.confirmPassword}
+                  <input type="password" className="form-input" value={passwordData.confirmPassword}
                     onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
-                    placeholder="Confirm new password"
-                  />
+                    placeholder="Confirm new password" />
                 </div>
               </div>
-
               <div className="flex justify-start">
                 <Button onClick={handlePasswordChange} disabled={loading} icon={Lock}>
                   {loading ? 'Changing...' : 'Change Password'}
@@ -323,13 +330,10 @@ const SettingsPage = () => {
           {activeTab === 'appearance' && (
             <div className="space-y-4">
               <h2 className="text-sm font-normal text-zinc-500 dark:text-zinc-300">Theme</h2>
-              
               <div className="flex gap-3">
-                <div 
+                <div
                   className={`p-3 border rounded-lg cursor-pointer transition-all ${
-                    theme === 'light' 
-                      ? 'border-zinc-400 bg-zinc-100 dark:bg-zinc-800' 
-                      : 'border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700'
+                    theme === 'light' ? 'border-zinc-400 bg-zinc-100 dark:bg-zinc-800' : 'border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700'
                   }`}
                   onClick={() => setTheme('light')}
                 >
@@ -338,12 +342,9 @@ const SettingsPage = () => {
                     <span className="text-xs text-zinc-600 dark:text-zinc-400">Light</span>
                   </div>
                 </div>
-                
-                <div 
+                <div
                   className={`p-3 border rounded-lg cursor-pointer transition-all ${
-                    theme === 'dark' 
-                      ? 'border-zinc-400 bg-zinc-100 dark:bg-zinc-800' 
-                      : 'border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700'
+                    theme === 'dark' ? 'border-zinc-400 bg-zinc-100 dark:bg-zinc-800' : 'border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700'
                   }`}
                   onClick={() => setTheme('dark')}
                 >
@@ -363,7 +364,6 @@ const SettingsPage = () => {
                 <h2 className="text-lg font-semibold text-zinc-800 dark:text-zinc-100">Notifications</h2>
                 <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">Manage your notification preferences</p>
               </div>
-              
               <div className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
@@ -374,41 +374,33 @@ const SettingsPage = () => {
                     <p className="text-xs text-zinc-500 dark:text-zinc-400">Receive notifications on your device</p>
                   </div>
                 </div>
-                <button
-                  onClick={toggleNotifications}
-                  className="w-11 h-6 rounded-full relative transition-colors"
-                  style={{ backgroundColor: notificationsEnabled ? '#8b5cf6' : '#d4d4d8' }}
-                >
-                  <div 
-                    className="absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all"
-                    style={{ left: notificationsEnabled ? '22px' : '2px' }}
-                  />
+                <button onClick={toggleNotifications} className="w-11 h-6 rounded-full relative transition-colors"
+                  style={{ backgroundColor: notificationsEnabled ? '#8b5cf6' : '#d4d4d8' }}>
+                  <div className="absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all"
+                    style={{ left: notificationsEnabled ? '22px' : '2px' }} />
                 </button>
               </div>
-
               <div className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                    {soundEnabled ? <Volume2 size={16} className="text-blue-600 dark:text-blue-400" /> : <VolumeX size={16} className="text-blue-600 dark:text-blue-400" />}
+                    {soundEnabled
+                      ? <Volume2 size={16} className="text-blue-600 dark:text-blue-400" />
+                      : <VolumeX size={16} className="text-blue-600 dark:text-blue-400" />}
                   </div>
                   <div>
                     <span className="text-sm font-medium text-zinc-700 dark:text-zinc-200">Sound</span>
                     <p className="text-xs text-zinc-500 dark:text-zinc-400">Play sound for notifications</p>
                   </div>
                 </div>
-                <button
-                  onClick={toggleSound}
-                  className="w-11 h-6 rounded-full relative transition-colors"
-                  style={{ backgroundColor: soundEnabled ? '#8b5cf6' : '#d4d4d8' }}
-                >
-                  <div 
-                    className="absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all"
-                    style={{ left: soundEnabled ? '22px' : '2px' }}
-                  />
+                <button onClick={toggleSound} className="w-11 h-6 rounded-full relative transition-colors"
+                  style={{ backgroundColor: soundEnabled ? '#8b5cf6' : '#d4d4d8' }}>
+                  <div className="absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all"
+                    style={{ left: soundEnabled ? '22px' : '2px' }} />
                 </button>
               </div>
             </div>
           )}
+
         </div>
       </div>
     </div>
