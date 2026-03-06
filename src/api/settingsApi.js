@@ -1,16 +1,18 @@
 import axiosClient from './axiosClient';
 
 const settingsApi = {
-  // Password
   changePassword: (data) => axiosClient.put('settings/password', data),
-  
-  // Personalization
   getPersonalization: () => axiosClient.get('settings/personalization'),
   updatePersonalization: (data) => axiosClient.put('settings/personalization', data),
-  
-  // Profile
   getProfile: () => axiosClient.get('settings/profile'),
   updateProfile: (data) => axiosClient.put('settings/profile', data),
+  uploadAvatar: (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return axiosClient.post('settings/avatar', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
 };
 
 export default settingsApi;
