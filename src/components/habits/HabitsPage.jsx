@@ -13,6 +13,7 @@ const HabitsPage = () => {
   const [logDateModal, setLogDateModal] = useState(null);
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
+  const [logDateError, setLogDateError] = useState('');
 
   const handleLogHabit = (habit) => {
     openModal('logHabit', habit);
@@ -28,21 +29,33 @@ const HabitsPage = () => {
     const now = new Date();
     setSelectedDate(now.toISOString().split('T')[0]);
     setSelectedTime(now.toTimeString().slice(0, 5));
+    setLogDateError('');
     setLogDateModal(habit);
   };
 
   const handleLogForDate = () => {
     if (!logDateModal || !selectedDate) return;
+
+    const today = new Date().toISOString().split('T')[0];
+    const isToday = selectedDate === today;
+
+    // Frontend check first
+    if (isToday && (logDateModal.completedToday || logDateModal.missedToday)) {
+      setLogDateError('Already logged today — pick a past date.');
+      return;
+    }
+
     const habitName = logDateModal.name || logDateModal.title;
     
     if (window.confirm(`Log "${habitName}" for ${selectedDate}${selectedTime ? ' at ' + selectedTime : ''}?`)) {
-      console.log('Log date:', logDateModal.id, selectedDate, selectedTime);
       logHabit(logDateModal.id, selectedDate, selectedTime || undefined)
         .then(() => {
           setLogDateModal(null);
+          setLogDateError('');
         })
         .catch(err => {
-          console.error('Failed to log habit for date:', err);
+          // Show error from backend
+          setLogDateError(err.response?.data?.detail || 'Already logged today — pick a past date.');
         });
     }
   };
@@ -81,51 +94,74 @@ const HabitsPage = () => {
       {loading ? (
         <Loader />
       ) : (
-        <HabitList 
-          habits={habits} 
-          onLog={handleLogHabit} 
+        <HabitList
+          habits={habits}
+          onLog={handleLogHabit}
           onMiss={handleMissHabit}
           onLogDate={handleLogDateClick}
-          onDelete={handleDeleteHabit} 
+          onDelete={handleDeleteHabit}
           onViewAnalytics={handleViewAnalytics}
         />
       )}
 
       {/* Date/Time Picker Modal */}
-      <Modal 
-        isOpen={!!logDateModal} 
-        title="Log Habit for Date" 
-        onClose={() => setLogDateModal(null)}
+      <Modal
+        isOpen={!!logDateModal}
+        title="Log Habit for Date"
+        onClose={() => { setLogDateModal(null); setLogDateError(''); }}
       >
         <div className="flex flex-col gap-4">
           <p className="text-zinc-400 text-sm">
             Logging: <strong className="text-zinc-200">{logDateModal?.name || logDateModal?.title}</strong>
           </p>
-          
+
+          {logDateError && (
+            <div className="p-3 bg-red-900/20 border border-red-800 rounded text-red-400 text-sm">
+              {logDateError}
+            </div>
+          )}
+
           <div>
             <label className="block text-xs text-zinc-500 mb-1">Date</label>
-            <input 
-              type="date" 
+            <input
+              type="date"
               value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
+              onChange={(e) => { setSelectedDate(e.target.value); setLogDateError(''); }}
               className="w-full p-2 text-sm bg-zinc-900 border border-zinc-800 rounded text-zinc-200"
               max={new Date().toISOString().split('T')[0]}
             />
           </div>
-          
+
           <div>
             <label className="block text-xs text-zinc-500 mb-1">Time (optional)</label>
-            <input 
-              type="time" 
+            <input
+              type="time"
               value={selectedTime}
               onChange={(e) => setSelectedTime(e.target.value)}
               className="w-full p-2 text-sm bg-zinc-900 border border-zinc-800 rounded text-zinc-200"
             />
           </div>
-          
+
+          {selectedDate === new Date().toISOString().split('T')[0] &&
+            (logDateModal?.completedToday || logDateModal?.missedToday) && (
+            <div className="p-3 bg-yellow-900/20 border border-yellow-800 rounded text-yellow-400 text-sm">
+              ⚠️ Already logged today — pick a past date instead.
+            </div>
+          )}
+
           <div className="flex justify-end gap-2 mt-2">
-            <Button variant="secondary" onClick={() => setLogDateModal(null)}>Cancel</Button>
-            <Button onClick={handleLogForDate}>Log</Button>
+            <Button variant="secondary" onClick={() => { setLogDateModal(null); setLogDateError(''); }}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleLogForDate}
+              disabled={
+                selectedDate === new Date().toISOString().split('T')[0] &&
+                (logDateModal?.completedToday || logDateModal?.missedToday)
+              }
+            >
+              Log
+            </Button>
           </div>
         </div>
       </Modal>
