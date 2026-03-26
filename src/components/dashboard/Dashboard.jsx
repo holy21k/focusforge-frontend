@@ -7,11 +7,13 @@ import AISuggestionCard from './AISuggestionCard';
 import RecentActivity from './RecentActivity';
 import { useHabits } from '../../store/habitStore';
 import { useTasks } from '../../store/taskStore';
+import { useAuth } from '../../store/authStore';
 import habitApi from '../../api/habitApi';
 
 const Dashboard = () => {
   const { habits } = useHabits();
   const { tasks } = useTasks();
+  const { user } = useAuth();
   const [aiSuggestions, setAiSuggestions] = useState(null);
   const [loadingAI, setLoadingAI] = useState(false);
 
@@ -72,13 +74,31 @@ const Dashboard = () => {
   
   const productivityScore = Math.round(((completedHabitsToday / (totalHabits || 1)) * 0.5 + (tasks.filter(t => t.completed).length / (tasks.length || 1)) * 0.5) * 100);
 
+  const isNewUser = habits.length === 0 && tasks.length === 0;
+
   return (
     <div className="flex flex-col gap-6">
       {/* Header */}
       <div>
         <h1 className="text-lg font-normal text-zinc-700 dark:text-zinc-200">Dashboard</h1>
-        <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">Welcome back</p>
+        <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+          {isNewUser ? `Welcome, ${user?.username || 'there'} — let's get started` : 'Welcome back'}
+        </p>
       </div>
+
+      {/* New user empty state */}
+      {isNewUser && (
+        <div className="rounded-xl p-6 border border-dashed border-zinc-700 dark:border-zinc-700 flex flex-col items-center justify-center gap-3 text-center" style={{ background: 'rgba(139,92,246,0.05)' }}>
+          <div style={{ fontSize: '2rem' }}>⚡</div>
+          <h3 className="text-sm font-medium text-zinc-200">You're all set up</h3>
+          <p className="text-xs text-zinc-500 max-w-sm">
+            Create your first habit to start getting AI predictions, failure risk scores, and your personalized coach. Start small — one habit is enough.
+          </p>
+          <a href="/habits" className="mt-1 text-xs font-medium px-4 py-2 rounded-lg" style={{ background: '#8b5cf6', color: '#fff' }}>
+            + Create your first habit
+          </a>
+        </div>
+      )}
 
       {/* Stats Row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
