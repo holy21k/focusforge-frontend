@@ -1,19 +1,36 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Sparkles, TrendingUp, TrendingDown, AlertTriangle, 
+import {
+  Sparkles, TrendingUp, TrendingDown, AlertTriangle,
   Clock, Calendar, Trophy, Target, ArrowRight,
-  RefreshCw, CheckCircle, XCircle, Zap
+  RefreshCw, CheckCircle, XCircle, Zap, Flame, Skull
 } from 'lucide-react';
 import coachApi from '../../api/coachApi';
 import '../../styles/cards.css';
+
+const ROAST_BUTTON_LABELS = [
+  "🎲 Hit me again",
+  "💀 Roast me harder",
+  "😤 I can take it",
+  "🔥 More punishment",
+  "👊 Don't hold back",
+  "😈 Destroy me",
+  "⚡ Again. Now.",
+  "🪦 Finish me off",
+  "😱 Tell me the truth",
+  "🤡 Call me out",
+  "💣 Drop the bomb",
+  "😤 Go harder",
+];
 
 const AICoachPage = () => {
   const [loading, setLoading] = useState(true);
   const [coachData, setCoachData] = useState(null);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [error, setError] = useState(null);
+  const [roastLoading, setRoastLoading] = useState(false);
+  const [roastButtonLabel, setRoastButtonLabel] = useState(ROAST_BUTTON_LABELS[0]);
+  const [roastCount, setRoastCount] = useState(0);
 
-  // Load coach data on mount
   useEffect(() => {
     loadCoachData();
   }, []);
@@ -23,29 +40,19 @@ const AICoachPage = () => {
     setError(null);
     try {
       const response = await coachApi.getAllInsights();
-      setCoachData(response.data);
+      setCoachData(response);
     } catch (err) {
       console.error('Error loading coach data:', err);
-      // Set demo data for preview (no error message)
       setCoachData({
         status: {
           status: 'active',
           coach_type: 'Discipline Coach',
           user_level: '🌟 Rising Star',
-          summary: {
-            productivity_score: 72,
-            trend: 'improving',
-            total_habits: 3,
-            average_streak: 5
-          }
+          summary: { productivity_score: 72, trend: 'improving', total_habits: 3, average_streak: 5 }
         },
         tomorrow: {
           date: new Date(Date.now() + 86400000).toISOString().split('T')[0],
-          overall_prediction: {
-            success_probability: 75,
-            level: 'likely',
-            confidence: 'high'
-          },
+          overall_prediction: { success_probability: 75, level: 'likely', confidence: 'high' },
           habits_prediction: [
             { habit_id: '1', habit_name: 'Morning Exercise', success_probability: 80, prediction: 'likely', risk_level: 'low' },
             { habit_id: '2', habit_name: 'Read for 20 min', success_probability: 70, prediction: 'likely', risk_level: 'low' },
@@ -55,23 +62,17 @@ const AICoachPage = () => {
           coach_message: 'You are on track! Keep up the great work!'
         },
         failure_risk: {
-          risk_score: 25,
-          risk_level: 'low',
-          identified_risks: [
-            { type: 'Evening Fatigue', severity: 'low', indicator: 'Energy drops after 8pm', impact: 'May affect night habits', action: 'Schedule important habits earlier in the day' }
-          ],
-          protective_factors: [
-            'Strong morning routine',
-            'Consistent habit tracking'
-          ],
+          risk_score: 25, risk_level: 'low',
+          identified_risks: [{ type: 'Evening Fatigue', severity: 'low', indicator: 'Energy drops after 8pm', impact: 'May affect night habits', action: 'Schedule important habits earlier in the day' }],
+          protective_factors: ['Strong morning routine', 'Consistent habit tracking'],
           coach_intervention: 'Your consistency is improving! Keep building positive habits.'
         },
         weekly_score: {
-          score: 72,
-          level: '🌟 Rising Star',
+          score: 72, level: '🌟 Rising Star',
           metrics: { tasks_completed: 12, habits_completed: 18, total_completions: 30 },
           comparison: { last_week_total: 25, change_percent: 20, trend: 'improving' },
-          coach_assessment: 'Great improvement! You completed 20% more tasks than last week.'
+          coach_assessment: 'Great improvement! You completed 20% more tasks than last week.',
+          week: { start: '2026-03-06', end: '2026-03-13' }
         },
         recommendations: {
           recommendations: [
@@ -80,6 +81,11 @@ const AICoachPage = () => {
           ],
           coach_tip: 'Consistency beats intensity. Small daily actions lead to big results!',
           focus_area: 'Build morning habit momentum'
+        },
+        coach_personality: {
+          mood: 'real', emoji: '🎯',
+          title: 'Good. Not good enough.',
+          message: 'You are making progress but there is room to grow. Stay consistent this week.'
         }
       });
     } finally {
@@ -87,8 +93,85 @@ const AICoachPage = () => {
     }
   };
 
-  // Helper functions
+  const handleRoast = async () => {
+    setRoastLoading(true);
+    try {
+      const fresh = await coachApi.getRoast();
+      setCoachData(prev => ({ ...prev, coach_personality: fresh }));
+      setRoastCount(prev => prev + 1);
+      // Pick a new random button label different from current
+      const remaining = ROAST_BUTTON_LABELS.filter(l => l !== roastButtonLabel);
+      setRoastButtonLabel(remaining[Math.floor(Math.random() * remaining.length)]);
+    } catch (err) {
+      console.error('Roast failed:', err);
+    } finally {
+      setRoastLoading(false);
+    }
+  };
+
+  // ── Mood helpers ──────────────────────────────
+  const getMoodBorderColor = (mood) => {
+    switch (mood) {
+      case 'dead': return '#dc2626';
+      case 'savage': return '#ef4444';
+      case 'tough': return '#f97316';
+      case 'real': return '#eab308';
+      case 'hype': return '#3b82f6';
+      case 'elite': return '#22c55e';
+      default: return '#71717a';
+    }
+  };
+
+  const getMoodGradient = (mood) => {
+    switch (mood) {
+      case 'dead': return 'linear-gradient(135deg, #450a0a 0%, #7f1d1d 100%)';
+      case 'savage': return 'linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%)';
+      case 'tough': return 'linear-gradient(135deg, #431407 0%, #7c2d12 100%)';
+      case 'real': return 'linear-gradient(135deg, #422006 0%, #713f12 100%)';
+      case 'hype': return 'linear-gradient(135deg, #172554 0%, #1e3a8a 100%)';
+      case 'elite': return 'linear-gradient(135deg, #052e16 0%, #14532d 100%)';
+      default: return 'linear-gradient(135deg, #18181b 0%, #27272a 100%)';
+    }
+  };
+
+  const getMoodTextColor = (mood) => {
+    switch (mood) {
+      case 'dead': return '#fca5a5';
+      case 'savage': return '#fca5a5';
+      case 'tough': return '#fdba74';
+      case 'real': return '#fde047';
+      case 'hype': return '#93c5fd';
+      case 'elite': return '#86efac';
+      default: return '#d4d4d8';
+    }
+  };
+
+  const getMoodSubtextColor = (mood) => {
+    switch (mood) {
+      case 'dead': return '#f87171';
+      case 'savage': return '#f87171';
+      case 'tough': return '#fb923c';
+      case 'real': return '#facc15';
+      case 'hype': return '#60a5fa';
+      case 'elite': return '#4ade80';
+      default: return '#a1a1aa';
+    }
+  };
+
+  const getMoodLabel = (mood) => {
+    switch (mood) {
+      case 'dead': return '☠️ CRITICAL';
+      case 'savage': return '🔥 SAVAGE MODE';
+      case 'tough': return '⚠️ TOUGH LOVE';
+      case 'real': return '🎯 REAL TALK';
+      case 'hype': return '🚀 HYPE MODE';
+      case 'elite': return '👑 ELITE';
+      default: return '💬 COACH';
+    }
+  };
+
   const getLevelEmoji = (level) => {
+    if (!level) return '💪';
     if (level.includes('Elite')) return '🏆';
     if (level.includes('Pro')) return '⭐';
     if (level.includes('Growing')) return '📈';
@@ -97,9 +180,9 @@ const AICoachPage = () => {
   };
 
   const getTrendIcon = (trend) => {
-    if (trend === 'improving') return <TrendingUp size={16} className="text-success" />;
-    if (trend === 'declining') return <TrendingDown size={16} className="text-danger" />;
-    return <span className="text-secondary">➡️</span>;
+    if (trend === 'improving') return <TrendingUp size={16} className="text-green-500" />;
+    if (trend === 'declining') return <TrendingDown size={16} className="text-red-500" />;
+    return <span>➡️</span>;
   };
 
   const getRiskColor = (level) => {
@@ -144,18 +227,21 @@ const AICoachPage = () => {
     );
   }
 
-  const { status, tomorrow, failure_risk, weekly_score, recommendations } = coachData || {};
+  const { status, tomorrow, failure_risk, weekly_score, recommendations, coach_personality } = coachData || {};
+  const mood = coach_personality?.mood || 'real';
+  const isScolding = ['dead', 'savage', 'tough'].includes(mood);
 
   return (
     <div className="h-full flex flex-col">
+
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h2 className="text-lg font-normal flex items-center gap-2" style={{color: 'var(--text-primary)'}}>
+          <h2 className="text-lg font-normal flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
             <Sparkles size={18} className="text-primary" />
             AI Coach
           </h2>
-          <p className="text-xs mt-0.5" style={{color: 'var(--text-secondary)'}}>Your personal accountability</p>
+          <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>Your personal accountability</p>
         </div>
         <button onClick={loadCoachData} className="btn btn-outline text-xs py-1.5 px-3">
           <RefreshCw size={12} className="mr-1" />
@@ -189,8 +275,13 @@ const AICoachPage = () => {
 
       {/* Content */}
       <div className="flex-1 overflow-auto">
+
+        {/* ─────────────────────────────────────────── */}
+        {/* DASHBOARD TAB */}
+        {/* ─────────────────────────────────────────── */}
         {activeTab === 'dashboard' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+
             {/* Status Card */}
             <div className="card">
               <div className="card-header">
@@ -198,7 +289,7 @@ const AICoachPage = () => {
               </div>
               <div className="p-4">
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="text-3xl">{getLevelEmoji(status?.user_level || '🌱 Starter')}</div>
+                  <div className="text-3xl">{getLevelEmoji(status?.user_level)}</div>
                   <div>
                     <div className="text-base font-medium text-zinc-700 dark:text-zinc-200">{status?.user_level || '🌱 Starter'}</div>
                     <div className="flex items-center gap-1 text-xs text-zinc-500 dark:text-zinc-400">
@@ -207,37 +298,28 @@ const AICoachPage = () => {
                     </div>
                   </div>
                 </div>
-
                 <div className="grid grid-cols-2 gap-2">
                   <div className="p-3 bg-zinc-50 dark:bg-zinc-800 rounded-lg">
-                    <div className="text-xl font-bold text-primary">
-                      {status?.summary?.productivity_score || 0}%
-                    </div>
+                    <div className="text-xl font-bold text-primary">{status?.summary?.productivity_score || 0}%</div>
                     <div className="text-xs text-zinc-500 dark:text-zinc-400">Productivity</div>
                   </div>
                   <div className="p-3 bg-zinc-50 dark:bg-zinc-800 rounded-lg">
-                    <div className="text-xl font-bold text-primary">
-                      {status?.summary?.average_streak || 0}
-                    </div>
+                    <div className="text-xl font-bold text-primary">{status?.summary?.average_streak || 0}</div>
                     <div className="text-xs text-zinc-500 dark:text-zinc-400">Avg. Streak</div>
                   </div>
                   <div className="p-3 bg-zinc-50 dark:bg-zinc-800 rounded-lg">
-                    <div className="text-xl font-bold text-primary">
-                      {status?.summary?.total_habits || 0}
-                    </div>
+                    <div className="text-xl font-bold text-primary">{status?.summary?.total_habits || 0}</div>
                     <div className="text-xs text-zinc-500 dark:text-zinc-400">Habits</div>
                   </div>
                   <div className="p-3 bg-zinc-50 dark:bg-zinc-800 rounded-lg">
-                    <div className="text-xl font-bold text-warning">
-                      {failure_risk?.risk_level?.toUpperCase() || 'LOW'}
-                    </div>
+                    <div className="text-xl font-bold text-warning">{failure_risk?.risk_level?.toUpperCase() || 'LOW'}</div>
                     <div className="text-xs text-zinc-500 dark:text-zinc-400">Risk</div>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Tomorrow Preview Card */}
+            {/* Tomorrow Preview */}
             <div className="card">
               <div className="card-header">
                 <h3 className="card-title text-sm">Tomorrow</h3>
@@ -249,29 +331,15 @@ const AICoachPage = () => {
                     {tomorrow?.overall_prediction?.success_probability || 0}%
                   </span>
                 </div>
-                
                 <div className="progress-bar h-1.5 mb-3">
-                  <div 
-                    className="progress-bar-fill" 
-                    style={{ width: `${tomorrow?.overall_prediction?.success_probability || 0}%`, backgroundColor: tomorrow?.overall_prediction?.success_probability >= 70 ? '#22c55e' : tomorrow?.overall_prediction?.success_probability >= 40 ? '#f59e0b' : '#ef4444' }}
-                  ></div>
+                  <div className="progress-bar-fill" style={{ width: `${tomorrow?.overall_prediction?.success_probability || 0}%`, backgroundColor: tomorrow?.overall_prediction?.success_probability >= 70 ? '#22c55e' : tomorrow?.overall_prediction?.success_probability >= 40 ? '#f59e0b' : '#ef4444' }}></div>
                 </div>
-
-                <div className={`p-2 rounded-lg text-xs ${
-                  tomorrow?.overall_prediction?.success_probability >= 70 ? 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400' :
-                  tomorrow?.overall_prediction?.success_probability >= 40 ? 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400' :
-                  'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400'
-                }`}>
+                <div className={`p-2 rounded-lg text-xs ${tomorrow?.overall_prediction?.success_probability >= 70 ? 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400' : tomorrow?.overall_prediction?.success_probability >= 40 ? 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400' : 'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400'}`}>
                   <div className="flex items-center gap-1.5">
-                    {tomorrow?.overall_prediction?.success_probability >= 70 ? <CheckCircle size={14} /> :
-                     tomorrow?.overall_prediction?.success_probability >= 40 ? <Clock size={14} /> :
-                     <XCircle size={14} />}
-                    <span className="font-normal">
-                      {tomorrow?.overall_prediction?.level || 'uncertain'}
-                    </span>
+                    {tomorrow?.overall_prediction?.success_probability >= 70 ? <CheckCircle size={14} /> : tomorrow?.overall_prediction?.success_probability >= 40 ? <Clock size={14} /> : <XCircle size={14} />}
+                    <span className="font-normal">{tomorrow?.overall_prediction?.level || 'uncertain'}</span>
                   </div>
                 </div>
-
                 {tomorrow?.alerts?.length > 0 && (
                   <div className="mt-2 p-2 bg-red-100 dark:bg-red-900/20 rounded-lg">
                     <div className="flex items-center gap-1.5 text-red-600 dark:text-red-400 text-xs">
@@ -280,10 +348,7 @@ const AICoachPage = () => {
                     </div>
                   </div>
                 )}
-
-                <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400 italic">
-                  "{tomorrow?.coach_message || 'Keep building your discipline!'}"
-                </p>
+                <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400 italic">"{tomorrow?.coach_message || 'Keep building your discipline!'}"</p>
               </div>
             </div>
 
@@ -299,12 +364,112 @@ const AICoachPage = () => {
                 </p>
               </div>
             </div>
+
+            {/* ── RUTHLESS COACH CARD ── */}
+            {coach_personality && (
+              <div
+                className="lg:col-span-2 rounded-xl overflow-hidden"
+                style={{
+                  border: `2px solid ${getMoodBorderColor(mood)}`,
+                  boxShadow: isScolding ? `0 0 24px ${getMoodBorderColor(mood)}55` : 'none',
+                }}
+              >
+                {/* Mood badge bar */}
+                <div style={{ background: getMoodBorderColor(mood), padding: '4px 16px' }}>
+                  <span className="text-xs font-bold text-white tracking-widest">
+                    {getMoodLabel(mood)}
+                  </span>
+                </div>
+
+                {/* Dark gradient header */}
+                <div style={{ background: getMoodGradient(mood), padding: '20px 20px 16px' }}>
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <span style={{ fontSize: '2.5rem', lineHeight: 1 }}>{coach_personality.emoji}</span>
+                      <div>
+                        <h3
+                          className="text-lg font-bold leading-tight"
+                          style={{
+                            color: getMoodTextColor(mood),
+                            textShadow: isScolding ? `0 0 12px ${getMoodBorderColor(mood)}` : 'none',
+                          }}
+                        >
+                          {coach_personality.title}
+                        </h3>
+                        {roastCount > 0 && (
+                          <span className="text-xs opacity-60" style={{ color: getMoodTextColor(mood) }}>
+                            Roasted {roastCount} time{roastCount !== 1 ? 's' : ''}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Hit me again button */}
+                    <button
+                      onClick={handleRoast}
+                      disabled={roastLoading}
+                      className="shrink-0 text-xs font-bold px-4 py-2 rounded-lg transition-all duration-200 active:scale-95"
+                      style={{
+                        background: getMoodBorderColor(mood),
+                        color: '#fff',
+                        boxShadow: `0 4px 12px ${getMoodBorderColor(mood)}66`,
+                        opacity: roastLoading ? 0.7 : 1,
+                        minWidth: '130px',
+                        textAlign: 'center',
+                      }}
+                    >
+                      {roastLoading ? (
+                        <span className="flex items-center gap-1.5 justify-center">
+                          <RefreshCw size={12} className="animate-spin" />
+                          Loading...
+                        </span>
+                      ) : (
+                        roastButtonLabel
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Message */}
+                  <p
+                    className="mt-4 text-sm leading-relaxed"
+                    style={{
+                      color: getMoodSubtextColor(mood),
+                      fontWeight: isScolding ? '500' : '400',
+                      fontSize: isScolding ? '0.9rem' : '0.875rem',
+                      lineHeight: '1.7',
+                    }}
+                  >
+                    {coach_personality.message}
+                  </p>
+
+                  {/* Footer */}
+                  <div className="mt-4 pt-3 flex items-center justify-between" style={{ borderTop: `1px solid ${getMoodBorderColor(mood)}44` }}>
+                    <span className="text-xs opacity-40" style={{ color: getMoodTextColor(mood) }}>
+                      Based on your real data
+                    </span>
+                    {isScolding && (
+                      <span className="text-xs font-medium" style={{ color: getMoodBorderColor(mood) }}>
+                        ⚡ Take action now
+                      </span>
+                    )}
+                    {!isScolding && (
+                      <span className="text-xs font-medium" style={{ color: getMoodBorderColor(mood) }}>
+                        🎯 Keep it up
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
           </div>
         )}
 
+        {/* ─────────────────────────────────────────── */}
+        {/* TOMORROW TAB */}
+        {/* ─────────────────────────────────────────── */}
         {activeTab === 'tomorrow' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {/* Overall Prediction */}
             <div className="card">
               <div className="card-header">
                 <Calendar size={20} />
@@ -315,32 +480,18 @@ const AICoachPage = () => {
                   <div className={`text-4xl font-bold text-${getPredictionColor(tomorrow?.overall_prediction?.success_probability)}`}>
                     {tomorrow?.overall_prediction?.success_probability || 0}%
                   </div>
-                  <div className="text-zinc-500 dark:text-zinc-400 mt-1 text-sm">
-                    {tomorrow?.overall_prediction?.level || 'uncertain'} to succeed
-                  </div>
-                  <div className="text-xs text-zinc-400 dark:text-zinc-500 mt-1">
-                    Confidence: {tomorrow?.overall_prediction?.confidence || 'low'}
-                  </div>
+                  <div className="text-zinc-500 dark:text-zinc-400 mt-1 text-sm">{tomorrow?.overall_prediction?.level || 'uncertain'} to succeed</div>
+                  <div className="text-xs text-zinc-400 dark:text-zinc-500 mt-1">Confidence: {tomorrow?.overall_prediction?.confidence || 'low'}</div>
                 </div>
-
                 <div className="progress-bar h-2 mb-4">
-                  <div 
-                    className="progress-bar-fill"
-                    style={{ width: `${tomorrow?.overall_prediction?.success_probability || 0}%`, backgroundColor: tomorrow?.overall_prediction?.success_probability >= 70 ? '#22c55e' : tomorrow?.overall_prediction?.success_probability >= 40 ? '#f59e0b' : '#ef4444' }}
-                  ></div>
+                  <div className="progress-bar-fill" style={{ width: `${tomorrow?.overall_prediction?.success_probability || 0}%`, backgroundColor: tomorrow?.overall_prediction?.success_probability >= 70 ? '#22c55e' : tomorrow?.overall_prediction?.success_probability >= 40 ? '#f59e0b' : '#ef4444' }}></div>
                 </div>
-
-                <div className={`p-3 rounded-lg text-xs ${
-                  tomorrow?.overall_prediction?.success_probability >= 70 ? 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400' :
-                  tomorrow?.overall_prediction?.success_probability >= 40 ? 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400' :
-                  'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400'
-                }`}>
+                <div className={`p-3 rounded-lg text-xs ${tomorrow?.overall_prediction?.success_probability >= 70 ? 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400' : tomorrow?.overall_prediction?.success_probability >= 40 ? 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400' : 'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400'}`}>
                   <p className="font-medium text-sm">"{tomorrow?.coach_message || 'Keep building your discipline!'}"</p>
                 </div>
               </div>
             </div>
 
-            {/* Habit Predictions */}
             <div className="card">
               <div className="card-header">
                 <Target size={20} />
@@ -352,22 +503,15 @@ const AICoachPage = () => {
                     <div key={idx} className="p-3 bg-zinc-50 dark:bg-zinc-800 rounded-lg">
                       <div className="flex justify-between items-center mb-2">
                         <span className="font-medium text-sm">{habit.habit_name}</span>
-                        <span className={`text-lg font-bold`} style={{ color: habit.success_probability >= 70 ? '#22c55e' : habit.success_probability >= 40 ? '#f59e0b' : '#ef4444' }}>
+                        <span className="text-lg font-bold" style={{ color: habit.success_probability >= 70 ? '#22c55e' : habit.success_probability >= 40 ? '#f59e0b' : '#ef4444' }}>
                           {habit.success_probability}%
                         </span>
                       </div>
                       <div className="progress-bar h-1.5 mb-2">
-                        <div 
-                          className="progress-bar-fill"
-                          style={{ width: `${habit.success_probability}%`, backgroundColor: habit.success_probability >= 70 ? '#22c55e' : habit.success_probability >= 40 ? '#f59e0b' : '#ef4444' }}
-                        ></div>
+                        <div className="progress-bar-fill" style={{ width: `${habit.success_probability}%`, backgroundColor: habit.success_probability >= 70 ? '#22c55e' : habit.success_probability >= 40 ? '#f59e0b' : '#ef4444' }}></div>
                       </div>
                       <div className="flex items-center justify-between text-xs text-zinc-500 dark:text-zinc-400">
-                        <span className={`px-2 py-0.5 rounded text-xs ${
-                          habit.risk_level === 'low' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' :
-                          habit.risk_level === 'medium' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400' :
-                          'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
-                        }`}>
+                        <span className={`px-2 py-0.5 rounded text-xs ${habit.risk_level === 'low' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' : habit.risk_level === 'medium' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400' : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'}`}>
                           {habit.risk_level} risk
                         </span>
                         <span>{habit.prediction}</span>
@@ -383,7 +527,6 @@ const AICoachPage = () => {
               </div>
             </div>
 
-            {/* Alerts */}
             {tomorrow?.alerts?.length > 0 && (
               <div className="card lg:col-span-2">
                 <div className="card-header">
@@ -398,9 +541,7 @@ const AICoachPage = () => {
                         <div>
                           <p className="font-medium">{alert.message}</p>
                           {alert.habits?.length > 0 && (
-                            <p className="text-sm text-secondary mt-1">
-                              Affected: {alert.habits.join(', ')}
-                            </p>
+                            <p className="text-sm text-secondary mt-1">Affected: {alert.habits.join(', ')}</p>
                           )}
                         </div>
                       </div>
@@ -412,9 +553,11 @@ const AICoachPage = () => {
           </div>
         )}
 
+        {/* ─────────────────────────────────────────── */}
+        {/* RISKS TAB */}
+        {/* ─────────────────────────────────────────── */}
         {activeTab === 'risks' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {/* Risk Score */}
             <div className="card">
               <div className="card-header">
                 <AlertTriangle size={20} className="text-danger" />
@@ -431,18 +574,12 @@ const AICoachPage = () => {
                     </span>
                   </div>
                 </div>
-
-                <div className={`p-3 rounded-lg text-sm ${
-                  failure_risk?.risk_level === 'critical' ? 'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400' :
-                  failure_risk?.risk_level === 'high' ? 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400' :
-                  'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400'
-                }`}>
+                <div className={`p-3 rounded-lg text-sm ${failure_risk?.risk_level === 'critical' ? 'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400' : failure_risk?.risk_level === 'high' ? 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400' : 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400'}`}>
                   <p className="font-medium">"{failure_risk?.coach_intervention || 'Keep building!'}"</p>
                 </div>
               </div>
             </div>
 
-            {/* Identified Risks */}
             <div className="card">
               <div className="card-header">
                 <TrendingDown size={20} className="text-warning" />
@@ -455,11 +592,7 @@ const AICoachPage = () => {
                       <div className="flex items-start justify-between">
                         <div>
                           <div className="flex items-center gap-2 mb-1">
-                            <span className={`px-2 py-0.5 rounded text-xs ${
-                              risk.severity === 'critical' ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' :
-                              risk.severity === 'high' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400' :
-                              'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
-                            }`}>
+                            <span className={`px-2 py-0.5 rounded text-xs ${risk.severity === 'critical' ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' : risk.severity === 'high' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400' : 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'}`}>
                               {risk.severity}
                             </span>
                             <span className="font-medium text-sm">{risk.type}</span>
@@ -482,7 +615,6 @@ const AICoachPage = () => {
               </div>
             </div>
 
-            {/* Protective Factors */}
             <div className="card lg:col-span-2">
               <div className="card-header">
                 <CheckCircle size={20} className="text-success" />
@@ -506,9 +638,11 @@ const AICoachPage = () => {
           </div>
         )}
 
+        {/* ─────────────────────────────────────────── */}
+        {/* WEEKLY TAB */}
+        {/* ─────────────────────────────────────────── */}
         {activeTab === 'weekly' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {/* Weekly Score */}
             <div className="card">
               <div className="card-header">
                 <Trophy size={20} className="text-warning" />
@@ -517,42 +651,24 @@ const AICoachPage = () => {
               <div className="p-4">
                 <div className="text-center mb-4">
                   <div className="text-3xl mb-2">{weekly_score?.level?.split(' ')[0] || '🌱'}</div>
-                  <div className="text-2xl font-bold text-primary">
-                    {weekly_score?.score || 0}
-                  </div>
+                  <div className="text-2xl font-bold text-primary">{weekly_score?.score || 0}</div>
                   <div className="text-zinc-500 dark:text-zinc-400 text-sm">out of 100</div>
                 </div>
-
                 <div className="progress-bar h-2.5 mb-4">
-                  <div 
-                    className="progress-bar-fill bg-primary" 
-                    style={{ width: `${weekly_score?.score || 0}%` }}
-                  ></div>
+                  <div className="progress-bar-fill bg-primary" style={{ width: `${weekly_score?.score || 0}%` }}></div>
                 </div>
-
-                <div className={`p-2 rounded-lg text-center text-sm ${
-                  weekly_score?.comparison?.trend === 'up' ? 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400' :
-                  weekly_score?.comparison?.trend === 'down' ? 'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400' :
-                  'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
-                }`}>
+                <div className={`p-2 rounded-lg text-center text-sm ${weekly_score?.comparison?.trend === 'improving' ? 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400' : weekly_score?.comparison?.trend === 'declining' ? 'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400'}`}>
                   <div className="flex items-center justify-center gap-2">
-                    {weekly_score?.comparison?.trend === 'up' ? <TrendingUp size={16} /> :
-                     weekly_score?.comparison?.trend === 'down' ? <TrendingDown size={16} /> :
-                     <span>➡️</span>}
+                    {weekly_score?.comparison?.trend === 'improving' ? <TrendingUp size={16} /> : weekly_score?.comparison?.trend === 'declining' ? <TrendingDown size={16} /> : <span>➡️</span>}
                     <span className="font-medium">
-                      {weekly_score?.comparison?.change_percent > 0 ? '+' : ''}
-                      {weekly_score?.comparison?.change_percent || 0}% vs last week
+                      {weekly_score?.comparison?.change_percent > 0 ? '+' : ''}{weekly_score?.comparison?.change_percent || 0}% vs last week
                     </span>
                   </div>
                 </div>
-
-                <p className="mt-3 text-center text-zinc-500 dark:text-zinc-400 text-sm italic">
-                  "{weekly_score?.coach_assessment || 'Building from the ground up!'}"
-                </p>
+                <p className="mt-3 text-center text-zinc-500 dark:text-zinc-400 text-sm italic">"{weekly_score?.coach_assessment || 'Building from the ground up!'}"</p>
               </div>
             </div>
 
-            {/* Weekly Metrics */}
             <div className="card">
               <div className="card-header">
                 <Zap size={20} className="text-primary" />
@@ -561,25 +677,18 @@ const AICoachPage = () => {
               <div className="p-4">
                 <div className="grid grid-cols-3 gap-3 mb-4">
                   <div className="text-center p-3 bg-green-100 dark:bg-green-900/20 rounded-lg">
-                    <div className="text-xl font-bold text-green-600 dark:text-green-400">
-                      {weekly_score?.metrics?.tasks_completed || 0}
-                    </div>
+                    <div className="text-xl font-bold text-green-600 dark:text-green-400">{weekly_score?.metrics?.tasks_completed || 0}</div>
                     <div className="text-xs text-zinc-500 dark:text-zinc-400">Tasks</div>
                   </div>
                   <div className="text-center p-3 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
-                    <div className="text-xl font-bold text-blue-600 dark:text-blue-400">
-                      {weekly_score?.metrics?.habits_completed || 0}
-                    </div>
+                    <div className="text-xl font-bold text-blue-600 dark:text-blue-400">{weekly_score?.metrics?.habits_completed || 0}</div>
                     <div className="text-xs text-zinc-500 dark:text-zinc-400">Habits</div>
                   </div>
                   <div className="text-center p-3 bg-purple-100 dark:bg-purple-900/20 rounded-lg">
-                    <div className="text-xl font-bold text-purple-600 dark:text-purple-400">
-                      {weekly_score?.metrics?.total_completions || 0}
-                    </div>
+                    <div className="text-xl font-bold text-purple-600 dark:text-purple-400">{weekly_score?.metrics?.total_completions || 0}</div>
                     <div className="text-xs text-zinc-500 dark:text-zinc-400">Total</div>
                   </div>
                 </div>
-
                 <div className="p-3 bg-zinc-100 dark:bg-zinc-800 rounded-lg">
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-zinc-500 dark:text-zinc-400">Last Week</span>
@@ -589,7 +698,6 @@ const AICoachPage = () => {
               </div>
             </div>
 
-            {/* Week Info */}
             <div className="card lg:col-span-2">
               <div className="card-header">
                 <Calendar size={20} />
@@ -604,16 +712,15 @@ const AICoachPage = () => {
           </div>
         )}
 
+        {/* ─────────────────────────────────────────── */}
+        {/* RECOMMENDATIONS TAB */}
+        {/* ─────────────────────────────────────────── */}
         {activeTab === 'recommendations' && (
           <div className="space-y-4">
-            {/* Priority 1 */}
             {recommendations?.recommendations?.filter(r => r.priority <= 1).map((rec, idx) => (
               <div key={idx} className="card border-2" style={{ borderColor: rec.type === 'critical' ? '#ef4444' : '#f59e0b' }}>
                 <div className="card-header">
-                  <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                    rec.type === 'critical' ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' :
-                    'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400'
-                  }`}>
+                  <span className={`px-2 py-0.5 rounded text-xs font-medium ${rec.type === 'critical' ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400'}`}>
                     PRIORITY {rec.priority}
                   </span>
                   <h3 className="card-title">{rec.title}</h3>
@@ -625,23 +732,17 @@ const AICoachPage = () => {
                     <span className="text-sm">{rec.action}</span>
                   </div>
                   {rec.expected_impact && (
-                    <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400">
-                      Expected Impact: {rec.expected_impact}
-                    </p>
+                    <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400">Expected Impact: {rec.expected_impact}</p>
                   )}
                 </div>
               </div>
             ))}
 
-            {/* Other Recommendations */}
             {recommendations?.recommendations?.filter(r => r.priority > 1).slice(0, 5).map((rec, idx) => (
               <div key={idx} className="card">
                 <div className="card-header">
                   <h3 className="card-title">{rec.title}</h3>
-                  <span className={`px-2 py-0.5 rounded text-xs ${
-                    rec.type === 'celebration' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' :
-                    'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
-                  }`}>
+                  <span className={`px-2 py-0.5 rounded text-xs ${rec.type === 'celebration' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400'}`}>
                     {rec.type}
                   </span>
                 </div>
@@ -652,7 +753,6 @@ const AICoachPage = () => {
               </div>
             ))}
 
-            {/* Empty State */}
             {(!recommendations?.recommendations || recommendations.recommendations.length === 0) && (
               <div className="card">
                 <div className="p-6 text-center">
@@ -663,6 +763,7 @@ const AICoachPage = () => {
             )}
           </div>
         )}
+
       </div>
     </div>
   );
