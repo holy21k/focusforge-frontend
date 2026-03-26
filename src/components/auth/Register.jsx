@@ -5,20 +5,37 @@ import { useGoogleLogin } from '@react-oauth/google';
 import Input from '../common/Input';
 import Button from '../common/Button';
 import UnionLogo from '../../Union.svg';
-import { User, Mail, Lock, ArrowRight, BarChart3, TrendingUp } from 'lucide-react';
+import { ArrowRight, BarChart3, TrendingUp } from 'lucide-react';
 
 const Register = () => {
-  const [name, setName] = useState('');
+  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [formError, setFormError] = useState('');
   const { register, googleLogin, loading, error } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setFormError('');
+
+    // ✅ Frontend validation before hitting backend
+    if (username.trim().length < 3) {
+      setFormError('Username must be at least 3 characters.');
+      return;
+    }
+    if (username.includes(' ')) {
+      setFormError('Username cannot contain spaces.');
+      return;
+    }
+    if (password.length < 6) {
+      setFormError('Password must be at least 6 characters.');
+      return;
+    }
+
     try {
-      await register(name, email, password);
+      await register(username.trim(), email, password);
       navigate('/');
     } catch (err) {}
   };
@@ -36,8 +53,11 @@ const Register = () => {
     flow: 'implicit',
   });
 
+  const displayError = formError || error;
+
   return (
     <div className="min-h-screen flex">
+      {/* ── Left — Form ── */}
       <div className="w-1/2 flex flex-col justify-center px-12 lg:px-20 py-12" style={{ backgroundColor: '#ffffff' }}>
         <div className="w-full max-w-md mx-auto">
           <div className="mb-8">
@@ -48,7 +68,7 @@ const Register = () => {
             <p style={{ color: '#6b7280' }}>Start your journey to better productivity</p>
           </div>
 
-          {/* ✅ Google Button - fully working */}
+          {/* Google Button */}
           <button
             onClick={() => handleGoogleLogin()}
             disabled={googleLoading || loading}
@@ -72,35 +92,69 @@ const Register = () => {
 
           <div className="relative mb-6">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full" style={{ borderColor: '#e5e7eb' }}></div>
+              <div className="w-full border-t" style={{ borderColor: '#e5e7eb' }}></div>
             </div>
             <div className="relative flex justify-center text-sm">
               <span className="px-4" style={{ backgroundColor: '#ffffff', color: '#9ca3af' }}>or</span>
             </div>
           </div>
 
-          {error && (
-            <div className="p-4 rounded-xl mb-6 text-sm flex items-center gap-2" style={{ backgroundColor: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626' }}>
-              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#ef4444' }}></div>
-              {error}
+          {/* Error message */}
+          {displayError && (
+            <div className="p-4 rounded-xl mb-5 text-sm flex items-center gap-2" style={{ backgroundColor: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626' }}>
+              <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: '#ef4444' }}></div>
+              {displayError}
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            <Input label="" type="text" value={name} onChange={(e) => setName(e.target.value)} required
-              placeholder="Full name" className="w-full px-4 py-3 border rounded-xl transition-colors"
-              style={{ borderColor: '#d1d5db', backgroundColor: '#f9fafb', color: '#111827' }} />
 
-            <Input label="" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required
-              placeholder="Email address" className="w-full px-4 py-3 border rounded-xl transition-colors"
-              style={{ borderColor: '#d1d5db', backgroundColor: '#f9fafb', color: '#111827' }} />
+            {/* ✅ Fixed: username not "Full name" */}
+            <div>
+              <Input
+                label=""
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value.replace(/\s/g, ''))}
+                required
+                placeholder="Username (no spaces)"
+                className="w-full px-4 py-3 border rounded-xl transition-colors"
+                style={{ borderColor: '#d1d5db', backgroundColor: '#f9fafb', color: '#111827' }}
+              />
+              <p className="text-xs mt-1.5" style={{ color: '#9ca3af' }}>Min 3 characters, no spaces</p>
+            </div>
 
-            <Input label="" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required
-              placeholder="Password" className="w-full px-4 py-3 border rounded-xl transition-colors"
-              style={{ borderColor: '#d1d5db', backgroundColor: '#f9fafb', color: '#111827' }} />
+            <Input
+              label=""
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              placeholder="Email address"
+              className="w-full px-4 py-3 border rounded-xl transition-colors"
+              style={{ borderColor: '#d1d5db', backgroundColor: '#f9fafb', color: '#111827' }}
+            />
 
-            <Button type="submit" className="w-full py-3.5 transition-all rounded-xl shadow-lg"
-              style={{ background: 'linear-gradient(to right, #3b82f6, #4f46e5)', boxShadow: '0 10px 15px -3px rgba(59, 130, 246, 0.3)' }} loading={loading}>
+            <div>
+              <Input
+                label=""
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                placeholder="Password"
+                className="w-full px-4 py-3 border rounded-xl transition-colors"
+                style={{ borderColor: '#d1d5db', backgroundColor: '#f9fafb', color: '#111827' }}
+              />
+              <p className="text-xs mt-1.5" style={{ color: '#9ca3af' }}>Min 6 characters</p>
+            </div>
+
+            <Button
+              type="submit"
+              className="w-full py-3.5 transition-all rounded-xl shadow-lg"
+              style={{ background: 'linear-gradient(to right, #3b82f6, #4f46e5)', boxShadow: '0 10px 15px -3px rgba(59, 130, 246, 0.3)' }}
+              loading={loading}
+            >
               <span className="flex items-center justify-center gap-2 font-medium text-white">
                 Create Account <ArrowRight size={18} />
               </span>
@@ -118,11 +172,12 @@ const Register = () => {
         </div>
       </div>
 
+      {/* ── Right — Visual ── */}
       <div className="w-1/2 bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 relative overflow-hidden flex items-center justify-center">
         <div className="absolute inset-0 opacity-80">
           <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-400 rounded-full mix-blend-overlay filter blur-3xl animate-pulse"></div>
-          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-indigo-400 rounded-full mix-blend-overlay filter blur-3xl animate-pulse animation-delay-2000"></div>
-          <div className="absolute top-1/2 left-1/2 w-80 h-80 bg-purple-400 rounded-full mix-blend-overlay filter blur-3xl animate-pulse animation-delay-4000"></div>
+          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-indigo-400 rounded-full mix-blend-overlay filter blur-3xl animate-pulse"></div>
+          <div className="absolute top-1/2 left-1/2 w-80 h-80 bg-purple-400 rounded-full mix-blend-overlay filter blur-3xl animate-pulse"></div>
         </div>
         <div className="relative z-10 flex flex-col gap-6 px-12">
           <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-6 shadow-2xl border border-white/20">
@@ -138,13 +193,13 @@ const Register = () => {
               </div>
             </div>
             <div className="flex items-end gap-2 h-16">
-              <div className="w-8 bg-white/30 rounded-t-lg h-8 transition-all hover:bg-white/50"></div>
-              <div className="w-8 bg-white/40 rounded-t-lg h-12 transition-all hover:bg-white/60"></div>
-              <div className="w-8 bg-white/50 rounded-t-lg h-10 transition-all hover:bg-white/70"></div>
-              <div className="w-8 bg-white/60 rounded-t-lg h-14 transition-all hover:bg-white/80"></div>
-              <div className="w-8 bg-white/70 rounded-t-lg h-11 transition-all hover:bg-white/90"></div>
-              <div className="w-8 bg-white/80 rounded-t-lg h-16 transition-all hover:bg-white"></div>
-              <div className="w-8 bg-white rounded-t-lg h-13 transition-all"></div>
+              <div className="w-8 bg-white/30 rounded-t-lg h-8"></div>
+              <div className="w-8 bg-white/40 rounded-t-lg h-12"></div>
+              <div className="w-8 bg-white/50 rounded-t-lg h-10"></div>
+              <div className="w-8 bg-white/60 rounded-t-lg h-14"></div>
+              <div className="w-8 bg-white/70 rounded-t-lg h-11"></div>
+              <div className="w-8 bg-white/80 rounded-t-lg h-16"></div>
+              <div className="w-8 bg-white rounded-t-lg h-14"></div>
             </div>
           </div>
           <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-6 shadow-2xl border border-white/20">
@@ -164,15 +219,13 @@ const Register = () => {
               </div>
             </div>
             <div className="h-2 bg-white/20 rounded-full overflow-hidden">
-              <div className="h-full w-[75%] bg-white rounded-full transition-all"></div>
+              <div className="h-full w-3/4 bg-white rounded-full"></div>
             </div>
             <div className="flex justify-between mt-2 text-white/50 text-xs">
               <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
             </div>
           </div>
         </div>
-        <div className="absolute top-20 right-20 w-32 h-32 bg-white/5 rounded-full blur-2xl"></div>
-        <div className="absolute bottom-20 left-20 w-40 h-40 bg-white/5 rounded-full blur-2xl"></div>
       </div>
     </div>
   );
