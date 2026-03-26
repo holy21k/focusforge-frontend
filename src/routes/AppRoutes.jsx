@@ -10,6 +10,7 @@ import Login from '../components/auth/Login';
 import Register from '../components/auth/Register';
 import { useAuth } from '../store/authStore';
 import Loader from '../components/common/Loader';
+import LandingPage from '../components/landing/LandingPage';
 
 
 
@@ -17,14 +18,14 @@ const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
   
   if (loading) return <div className="h-screen flex items-center justify-center"><Loader /></div>;
-  if (!user) return <Navigate to="/login" />;
-  
+  if (!user) return <Navigate to="/landing" />;
   return children;
 };
 
 const AppRoutes = () => {
   return (
     <Routes>
+      <Route path="/landing" element={<LandingPage />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       
