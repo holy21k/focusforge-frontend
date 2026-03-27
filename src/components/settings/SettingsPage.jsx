@@ -96,7 +96,7 @@ const SettingsPage = () => {
       setIsGoogleAccount(false);
       showSuccess('Profile photo updated!');
     } catch (err) {
-      showError(err.message || 'Failed to upload photo');
+      showError(err.response?.data?.detail || err.message || 'Upload failed');
       setAvatarPreview(buildAvatarUrl(user?.avatar_url));
     } finally {
       setAvatarLoading(false);
