@@ -36,8 +36,8 @@ const Login = () => {
   });
 
   return (
-    <div className="min-h-screen flex">
-      <div className="w-1/2 flex flex-col justify-center px-12 lg:px-20 py-12" style={{ backgroundColor: '#ffffff' }}>
+    <div className="min-h-screen flex flex-col md:flex-row">
+      <div className="w-full md:w-1/2 flex flex-col justify-center px-6 sm:px-12 lg:px-20 py-12" style={{ backgroundColor: '#ffffff' }}>
         <div className="w-full max-w-md mx-auto">
           <div className="mb-8">
             <div className="inline-flex items-center justify-center mb-3">
@@ -132,7 +132,7 @@ const Login = () => {
         </div>
       </div>
 
-      <div className="w-1/2 bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 relative overflow-hidden flex items-center justify-center">
+      <div className="hidden md:flex w-1/2 bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 relative overflow-hidden items-center justify-center">
         <div className="absolute inset-0 opacity-80">
           <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-400 rounded-full mix-blend-overlay filter blur-3xl animate-pulse"></div>
           <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-indigo-400 rounded-full mix-blend-overlay filter blur-3xl animate-pulse animation-delay-2000"></div>
