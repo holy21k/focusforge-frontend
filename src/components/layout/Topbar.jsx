@@ -47,7 +47,7 @@ const Topbar = () => {
               </div>
             )}
           </div>
-          <div className="hidden md:block">
+          <div className="block">
             <p className="text-xs text-zinc-500 dark:text-zinc-400">{displayName}</p>
           </div>
         </div>
