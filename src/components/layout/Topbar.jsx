@@ -25,7 +25,7 @@ const Topbar = ({ onMenuClick }) => {
         <Menu size={18} />
       </button>
       
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 ml-auto">
         <button className={`p-1.5 rounded transition-all ${
           notificationsEnabled
             ? 'text-zinc-400'
