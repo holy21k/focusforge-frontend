@@ -17,6 +17,19 @@
   max-width: 420px;
 }
 
+@media (max-width: 480px) {
+  .modal-overlay {
+    align-items: flex-end;
+  }
+
+  .modal-content {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    max-width: 100%;
+    padding: var(--spacing-md);
+  }
+}
+
 .modal-header {
   display: flex;
   justify-content: space-between;
