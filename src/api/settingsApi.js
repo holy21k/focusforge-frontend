@@ -9,9 +9,7 @@ const settingsApi = {
   uploadAvatar: (file) => {
     const formData = new FormData();
     formData.append('file', file);
-    return axiosClient.post('settings/avatar', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+    return axiosClient.post('settings/avatar', formData);
   },
 };
 
