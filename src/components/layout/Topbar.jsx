@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bell, BellRing } from 'lucide-react';
+import { Bell, BellRing, Menu } from 'lucide-react';
 import { useAuth } from '../../store/authStore';
 import { useUI } from '../../store/uiStore';
 
@@ -7,11 +7,11 @@ const BACKEND = import.meta.env.VITE_API_URL?.replace('/api/v1', '') || 'http://
 
 const buildAvatarUrl = (url) => {
   if (!url) return null;
-  if (url.startsWith('http')) return url; // Google photo or full URL
-  return `${BACKEND}${url}`; // local upload like /uploads/avatars/xxx.jpg
+  if (url.startsWith('http')) return url;
+  return `${BACKEND}${url}`;
 };
 
-const Topbar = () => {
+const Topbar = ({ onMenuClick }) => {
   const { user } = useAuth();
   const { notificationsEnabled, theme } = useUI();
 
@@ -21,7 +21,9 @@ const Topbar = () => {
 
   return (
     <header className="topbar">
-      <div></div>
+      <button className="mobile-menu-btn" onClick={onMenuClick} aria-label="Open menu">
+        <Menu size={18} />
+      </button>
       
       <div className="flex items-center gap-3">
         <button className={`p-1.5 rounded transition-all ${

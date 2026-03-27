@@ -5,7 +5,7 @@ import { useAuth } from '../../store/authStore';
 import { useUI } from '../../store/uiStore';
 import UnionLogo from '../../Union.svg';
 
-const Sidebar = () => {
+const Sidebar = ({ isOpen, onClose }) => {
   const { logout } = useAuth();
   const { theme, toggleTheme } = useUI();
 
@@ -17,7 +17,7 @@ const Sidebar = () => {
   ];
 
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar${isOpen ? ' open' : ''}`}>
       <div className="sidebar-header">
         <img 
           src={UnionLogo} 
@@ -32,6 +32,7 @@ const Sidebar = () => {
           <NavLink 
             key={item.path} 
             to={item.path}
+            onClick={onClose}
             className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
           >
             <item.icon size={14} />
@@ -39,7 +40,7 @@ const Sidebar = () => {
           </NavLink>
         ))}
         
-        <NavLink to="/settings" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+        <NavLink to="/settings" onClick={onClose} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
           <Settings size={14} />
           <span>Settings</span>
         </NavLink>
