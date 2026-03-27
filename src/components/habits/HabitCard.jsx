@@ -121,9 +121,9 @@ const HabitCard = ({ habit, onLog, onMiss, onDelete, onViewAnalytics, onLogDate 
         </div>
       )}
       
-      <div className="flex justify-between items-center mt-auto">
+      <div className="flex flex-wrap justify-between items-center mt-auto gap-2">
         {!completedToday && !missedToday ? (
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button 
               variant="primary" 
               size="sm" 
@@ -150,7 +150,7 @@ const HabitCard = ({ habit, onLog, onMiss, onDelete, onViewAnalytics, onLogDate 
             </Button>
           </div>
         ) : completedToday ? (
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button 
               variant="secondary" 
               size="sm" 
@@ -169,7 +169,7 @@ const HabitCard = ({ habit, onLog, onMiss, onDelete, onViewAnalytics, onLogDate 
             </Button>
           </div>
         ) : (
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button 
               variant="secondary" 
               size="sm" 

@@ -101,7 +101,7 @@ const Dashboard = () => {
       )}
 
       {/* Stats Row */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-3 sm:grid-cols-3 gap-2 sm:gap-3">
         <StatsCard 
           title="Streak" 
           value={`${habitStreak}`} 
