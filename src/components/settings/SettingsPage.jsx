@@ -181,7 +181,7 @@ const SettingsPage = () => {
       )}
 
       <div className="card">
-        <div className="flex border-b border-zinc-200 dark:border-zinc-800">
+        <div className="flex border-b border-zinc-200 dark:border-zinc-800 overflow-x-auto">
           {tabs.map((tab) => (
             <button
               key={tab.id}
@@ -208,7 +208,7 @@ const SettingsPage = () => {
                 <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">Update your personal details</p>
               </div>
 
-              <div className="flex items-center gap-6 p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6 p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl">
                 <div className="relative">
                   {avatarPreview ? (
                     <div className="relative">

@@ -126,13 +126,14 @@ const LandingPage = () => {
         .l-h2           { font-weight:800; font-size:2.4rem; letter-spacing:-0.02em; line-height:1.15; }
         .l-h1           { font-weight:700; font-size:2.75rem; line-height:1.15; letter-spacing:-0.02em; }
         .l-step-arrow   { position:absolute; top:50%; right:-12px; transform:translateY(-50%); z-index:10; }
+        .nav-dtop       { display:flex; gap:10px; }
+        .lnav-hide      { display:flex; align-items:center; gap:32px; }
 
         /* ── GLOBAL overflow guard ── */
         .l-hero { overflow:hidden; }
         /* CTA blobs must clip inside the card */
         .l-cta-inner { overflow:hidden; }
 
-        /* ── MOBILE ── */
         @media(max-width:768px){
           /* root overflow guard — nothing escapes the viewport */
           html, body { overflow-x:hidden; max-width:100vw; }
@@ -169,7 +170,7 @@ const LandingPage = () => {
           .l-step-arrow  { display:none; }
 
           /* about */
-          .l-about-grid  { grid-template-columns:1fr; gap:28px; max-width:100%; }
+          .l-about-grid  { grid-template-columns:1fr; gap:28px; max-width:100%; padding:0 16px; }
           .l-about-vals  { grid-template-columns:1fr; }
           .l-about-img   { order:-1; width:100% !important; max-width:220px !important; margin:0 auto; display:block; height:auto !important; }
 
@@ -182,15 +183,15 @@ const LandingPage = () => {
           .l-footer-pad  { padding:44px 16px 28px; }
           .l-footer-bot  { flex-direction:column; align-items:flex-start; }
 
-          /* roast card */
-          .roast-wrap    { width:100%; box-sizing:border-box; overflow:hidden; }
+          /* roast card — prevent overflow */
+          .roast-wrap    { width:100%; box-sizing:border-box; overflow:hidden; max-width:100%; }
 
           /* feature cards */
           .feat-card     { padding:24px !important; }
 
           /* section inner max-width on mobile — prevent bleed */
           .l-section > div,
-          .l-section-alt > div { max-width:100%; box-sizing:border-box; }
+          .l-section-alt > div { max-width:100%; box-sizing:border-box; overflow:hidden; }
         }
 
         @media(max-width:480px){
@@ -202,6 +203,7 @@ const LandingPage = () => {
           .l-cta-inner { padding:32px 14px; }
           .l-footer-pad { padding:36px 14px 24px; }
           .l-stat-num   { font-size:1.6rem !important; }
+          .l-about-grid { padding:0; }
         }
       `}</style>
 
@@ -234,12 +236,12 @@ const LandingPage = () => {
             <img src={UnionLogo} alt="FocusForge" style={{ width:28, height:'auto' }} />
             <span className="syne" style={{ color:tp, fontWeight:800, fontSize:'1.15rem', letterSpacing:'-0.02em' }}>Focus<span style={{ color:'#8b5cf6' }}>Forge</span></span>
           </div>
-          <nav className="lnav-hide" style={{ display:'flex', alignItems:'center', gap:32 }}>
+          <nav className="lnav-hide">
             <a href="#features"    className="lnav" style={{ color:ts }}>Features</a>
             <a href="#how-it-works" className="lnav" style={{ color:ts }}>How It Works</a>
             <a href="#faq"         className="lnav" style={{ color:ts }}>FAQ</a>
           </nav>
-          <div className="nav-dtop" style={{ display:'flex', gap:10 }}>
+          <div className="nav-dtop">
             <button className="lbtn-g" style={{ color:ts, border:`1px solid ${border}`, padding:'9px 20px', fontSize:'0.85rem' }} onClick={() => navigate('/login')}>Login</button>
             <button className="lbtn-p" style={{ padding:'9px 20px', fontSize:'0.85rem' }} onClick={() => navigate('/register')}>Get Started <ArrowRight size={15} /></button>
           </div>
