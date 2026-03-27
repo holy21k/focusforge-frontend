@@ -113,24 +113,42 @@
   animation: fadeIn 0.3s ease;
 }
 
-/* Responsive */
+/* Responsive - preserve desktop layout on all screen sizes */
 @media (max-width: 768px) {
+  /* Keep the full sidebar visible, never collapse it */
   .sidebar {
-    width: 60px;
+    width: 180px;
+    min-width: 180px;
     padding: var(--spacing-md) var(--spacing-sm);
+    flex-shrink: 0;
   }
-  
+
   .sidebar-header span,
   .nav-item span {
-    display: none;
+    display: inline; /* always show labels */
   }
-  
+
   .nav-item {
-    justify-content: center;
-    padding: var(--spacing-sm);
+    justify-content: flex-start;
+    padding: var(--spacing-sm) var(--spacing-sm);
+    font-size: 0.75rem;
   }
-  
+
+  /* Allow the whole layout to scroll horizontally if the screen is very narrow */
+  .main-layout {
+    min-width: 100vw;
+    overflow-x: auto;
+  }
+
   .page-content {
     padding: var(--spacing-md);
+    min-width: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .sidebar {
+    width: 160px;
+    min-width: 160px;
   }
 }
