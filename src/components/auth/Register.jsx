@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, Link, useSearchParams } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../store/authStore';
 import { useGoogleLogin } from '@react-oauth/google';
 import Input from '../common/Input';
@@ -15,21 +15,6 @@ const Register = () => {
   const [formError, setFormError] = useState('');
   const { register, googleLogin, loading, error } = useAuth();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-
-  // Handle Google redirect callback (same as Login)
-  useEffect(() => {
-    const code = searchParams.get('code');
-    if (!code) return;
-
-    window.history.replaceState({}, document.title, '/register');
-
-    setGoogleLoading(true);
-    googleLogin(code, window.location.origin + '/register')
-      .then(() => navigate('/'))
-      .catch(() => {})
-      .finally(() => setGoogleLoading(false));
-  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -63,12 +48,21 @@ const Register = () => {
     } catch (err) {}
   };
 
-  // Redirect mode — matches Login.jsx
+  // Popup mode — works on all browsers without redirect URI issues
   const handleGoogleLogin = useGoogleLogin({
-    onError: () => console.error('Google signup cancelled'),
     flow: 'auth-code',
-    ux_mode: 'redirect',
-    redirect_uri: window.location.origin + '/register',
+    onSuccess: async ({ code }) => {
+      setGoogleLoading(true);
+      try {
+        await googleLogin(code, window.location.origin + '/login');
+        navigate('/');
+      } catch (err) {
+        console.error('Google signup failed:', err);
+      } finally {
+        setGoogleLoading(false);
+      }
+    },
+    onError: (err) => console.error('Google signup error:', err),
   });
 
   const displayError = formError || error;

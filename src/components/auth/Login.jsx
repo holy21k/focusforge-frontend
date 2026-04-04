@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, Link, useSearchParams } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../store/authStore';
 import { useGoogleLogin } from '@react-oauth/google';
 import Input from '../common/Input';
@@ -13,22 +13,6 @@ const Login = () => {
   const [googleLoading, setGoogleLoading] = useState(false);
   const { login, googleLogin, loading, error } = useAuth();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-
-  // Handle auth-code redirect callback
-  useEffect(() => {
-    const code = searchParams.get('code');
-    if (!code) return;
-
-    // Clear code from URL immediately to prevent double execution on re-render
-    window.history.replaceState({}, document.title, '/login');
-
-    setGoogleLoading(true);
-    googleLogin(code, window.location.origin + '/login')
-      .then(() => navigate('/'))
-      .catch(() => {})
-      .finally(() => setGoogleLoading(false));
-  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -38,12 +22,21 @@ const Login = () => {
     } catch (err) {}
   };
 
-  // Redirect mode — onSuccess never fires in redirect mode, useEffect above handles the code
+  // Popup mode — works on all browsers without redirect URI issues
   const handleGoogleLogin = useGoogleLogin({
-    onError: (err) => console.error('Google login error:', err),
     flow: 'auth-code',
-    ux_mode: 'redirect',
-    redirect_uri: window.location.origin + '/login',
+    onSuccess: async ({ code }) => {
+      setGoogleLoading(true);
+      try {
+        await googleLogin(code, window.location.origin + '/login');
+        navigate('/');
+      } catch (err) {
+        console.error('Google login failed:', err);
+      } finally {
+        setGoogleLoading(false);
+      }
+    },
+    onError: (err) => console.error('Google login error:', err),
   });
 
   return (
