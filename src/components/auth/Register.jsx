@@ -25,7 +25,7 @@ const Register = () => {
     window.history.replaceState({}, document.title, '/register');
 
     setGoogleLoading(true);
-    googleLogin(code)
+    googleLogin(code, window.location.origin + '/register')
       .then(() => navigate('/'))
       .catch(() => {})
       .finally(() => setGoogleLoading(false));

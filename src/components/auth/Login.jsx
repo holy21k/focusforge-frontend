@@ -24,7 +24,7 @@ const Login = () => {
     window.history.replaceState({}, document.title, '/login');
 
     setGoogleLoading(true);
-    googleLogin(code)
+    googleLogin(code, window.location.origin + '/login')
       .then(() => navigate('/'))
       .catch(() => {})
       .finally(() => setGoogleLoading(false));
