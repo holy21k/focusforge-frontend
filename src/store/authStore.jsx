@@ -48,10 +48,10 @@ export const AuthProvider = ({ children }) => {
     } finally { setLoading(false); }
   };
 
-  const googleLogin = async (googleToken) => {
+  const googleLogin = async (googleToken, redirectUri) => {
     setLoading(true); setError(null);
     try {
-      const data = await authApi.googleLogin(googleToken);
+      const data = await authApi.googleLogin(googleToken, redirectUri);
       localStorage.setItem('token', data.access_token);
       const userData = await authApi.getMe();
       setUser(userData);
