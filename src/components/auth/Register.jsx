@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../store/authStore';
 import { useGoogleLogin } from '@react-oauth/google';
 import Input from '../common/Input';
@@ -15,12 +15,26 @@ const Register = () => {
   const [formError, setFormError] = useState('');
   const { register, googleLogin, loading, error } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  // Handle Google redirect callback (same as Login)
+  useEffect(() => {
+    const code = searchParams.get('code');
+    if (!code) return;
+
+    window.history.replaceState({}, document.title, '/register');
+
+    setGoogleLoading(true);
+    googleLogin(code)
+      .then(() => navigate('/'))
+      .catch(() => {})
+      .finally(() => setGoogleLoading(false));
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setFormError('');
 
-    // ✅ Frontend validation before hitting backend
     if (username.trim().length < 3) {
       setFormError('Username must be at least 3 characters.');
       return;
@@ -29,8 +43,17 @@ const Register = () => {
       setFormError('Username cannot contain spaces.');
       return;
     }
-    if (password.length < 6) {
-      setFormError('Password must be at least 6 characters.');
+    // Match backend requirement: 8+ chars, one uppercase, one number
+    if (password.length < 8) {
+      setFormError('Password must be at least 8 characters.');
+      return;
+    }
+    if (!/[A-Z]/.test(password)) {
+      setFormError('Password must contain at least one uppercase letter.');
+      return;
+    }
+    if (!/[0-9]/.test(password)) {
+      setFormError('Password must contain at least one number.');
       return;
     }
 
@@ -40,17 +63,12 @@ const Register = () => {
     } catch (err) {}
   };
 
+  // Redirect mode — matches Login.jsx
   const handleGoogleLogin = useGoogleLogin({
-    onSuccess: async (tokenResponse) => {
-      setGoogleLoading(true);
-      try {
-        await googleLogin(tokenResponse.access_token);
-        navigate('/');
-      } catch (err) {}
-      finally { setGoogleLoading(false); }
-    },
     onError: () => console.error('Google signup cancelled'),
-    flow: 'implicit',
+    flow: 'auth-code',
+    ux_mode: 'redirect',
+    redirect_uri: window.location.origin + '/register',
   });
 
   const displayError = formError || error;
@@ -99,7 +117,6 @@ const Register = () => {
             </div>
           </div>
 
-          {/* Error message */}
           {displayError && (
             <div className="p-4 rounded-xl mb-5 text-sm flex items-center gap-2" style={{ backgroundColor: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626' }}>
               <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: '#ef4444' }}></div>
@@ -108,8 +125,6 @@ const Register = () => {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
-
-            {/* ✅ Fixed: username not "Full name" */}
             <div>
               <Input
                 label=""
@@ -146,7 +161,7 @@ const Register = () => {
                 className="w-full px-4 py-3 border rounded-xl transition-colors"
                 style={{ borderColor: '#d1d5db', backgroundColor: '#f9fafb', color: '#111827' }}
               />
-              <p className="text-xs mt-1.5" style={{ color: '#9ca3af' }}>Min 6 characters</p>
+              <p className="text-xs mt-1.5" style={{ color: '#9ca3af' }}>Min 8 characters, one uppercase, one number</p>
             </div>
 
             <Button
