@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../store/authStore';
 import { useGoogleLogin } from '@react-oauth/google';
 import Input from '../common/Input';
@@ -13,6 +13,22 @@ const Login = () => {
   const [googleLoading, setGoogleLoading] = useState(false);
   const { login, googleLogin, loading, error } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  // Handle auth-code redirect callback
+  useEffect(() => {
+    const code = searchParams.get('code');
+    if (!code) return;
+
+    // Clear code from URL immediately to prevent double execution on re-render
+    window.history.replaceState({}, document.title, '/login');
+
+    setGoogleLoading(true);
+    googleLogin(code)
+      .then(() => navigate('/'))
+      .catch(() => {})
+      .finally(() => setGoogleLoading(false));
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -22,17 +38,12 @@ const Login = () => {
     } catch (err) {}
   };
 
+  // Redirect mode — onSuccess never fires in redirect mode, useEffect above handles the code
   const handleGoogleLogin = useGoogleLogin({
-    onSuccess: async (tokenResponse) => {
-      setGoogleLoading(true);
-      try {
-        await googleLogin(tokenResponse.access_token);
-        navigate('/');
-      } catch (err) {}
-      finally { setGoogleLoading(false); }
-    },
-    onError: () => console.error('Google login cancelled'),
-    flow: 'implicit',
+    onError: (err) => console.error('Google login error:', err),
+    flow: 'auth-code',
+    ux_mode: 'redirect',
+    redirect_uri: window.location.origin + '/login',
   });
 
   return (
@@ -47,7 +58,6 @@ const Login = () => {
             <p style={{ color: '#6b7280' }}>Sign in to continue to FocusForge</p>
           </div>
 
-          {/* ✅ Google Button - fully working */}
           <button
             onClick={() => handleGoogleLogin()}
             disabled={googleLoading || loading}
@@ -71,7 +81,7 @@ const Login = () => {
 
           <div className="relative mb-6">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full" style={{ borderColor: '#e5e7eb' }}></div>
+              <div className="w-full border-t" style={{ borderColor: '#e5e7eb' }}></div>
             </div>
             <div className="relative flex justify-center text-sm">
               <span className="px-4" style={{ backgroundColor: '#ffffff', color: '#9ca3af' }}>or</span>
@@ -152,13 +162,13 @@ const Login = () => {
               </div>
             </div>
             <div className="flex items-end gap-2 h-16">
-              <div className="w-8 bg-white/30 rounded-t-lg h-8 transition-all hover:bg-white/50"></div>
-              <div className="w-8 bg-white/40 rounded-t-lg h-12 transition-all hover:bg-white/60"></div>
-              <div className="w-8 bg-white/50 rounded-t-lg h-10 transition-all hover:bg-white/70"></div>
-              <div className="w-8 bg-white/60 rounded-t-lg h-14 transition-all hover:bg-white/80"></div>
-              <div className="w-8 bg-white/70 rounded-t-lg h-11 transition-all hover:bg-white/90"></div>
-              <div className="w-8 bg-white/80 rounded-t-lg h-16 transition-all hover:bg-white"></div>
-              <div className="w-8 bg-white rounded-t-lg h-13 transition-all"></div>
+              <div className="w-8 bg-white/30 rounded-t-lg h-8"></div>
+              <div className="w-8 bg-white/40 rounded-t-lg h-12"></div>
+              <div className="w-8 bg-white/50 rounded-t-lg h-10"></div>
+              <div className="w-8 bg-white/60 rounded-t-lg h-14"></div>
+              <div className="w-8 bg-white/70 rounded-t-lg h-11"></div>
+              <div className="w-8 bg-white/80 rounded-t-lg h-16"></div>
+              <div className="w-8 bg-white rounded-t-lg h-13"></div>
             </div>
           </div>
           <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-6 shadow-2xl border border-white/20">
@@ -178,15 +188,13 @@ const Login = () => {
               </div>
             </div>
             <div className="h-2 bg-white/20 rounded-full overflow-hidden">
-              <div className="h-full w-[75%] bg-white rounded-full transition-all"></div>
+              <div className="h-full w-[75%] bg-white rounded-full"></div>
             </div>
             <div className="flex justify-between mt-2 text-white/50 text-xs">
               <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
             </div>
           </div>
         </div>
-        <div className="absolute top-20 right-20 w-32 h-32 bg-white/5 rounded-full blur-2xl"></div>
-        <div className="absolute bottom-20 left-20 w-40 h-40 bg-white/5 rounded-full blur-2xl"></div>
       </div>
     </div>
   );
