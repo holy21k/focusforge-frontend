@@ -1,11 +1,25 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../store/authStore';
-import { useGoogleLogin } from '@react-oauth/google';
 import Input from '../common/Input';
 import Button from '../common/Button';
 import UnionLogo from '../../Union.svg';
 import { ArrowRight, BarChart3, TrendingUp } from 'lucide-react';
+
+const GOOGLE_CLIENT_ID = '620637746282-58n4pf0mm9vfij0dnsgbi6fdhim5ahp2.apps.googleusercontent.com';
+
+function buildGoogleOAuthURL(redirectPath = '/register') {
+  const redirectUri = window.location.origin + redirectPath;
+  const params = new URLSearchParams({
+    client_id: GOOGLE_CLIENT_ID,
+    redirect_uri: redirectUri,
+    response_type: 'code',
+    scope: 'openid email profile',
+    access_type: 'offline',
+    prompt: 'select_account',
+  });
+  return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+}
 
 const Register = () => {
   const [username, setUsername] = useState('');
@@ -16,60 +30,42 @@ const Register = () => {
   const { register, googleLogin, loading, error } = useAuth();
   const navigate = useNavigate();
 
+  // Handle Google redirect callback
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
+    if (!code) return;
+    window.history.replaceState({}, document.title, '/register');
+    setGoogleLoading(true);
+    const redirectUri = window.location.origin + '/register';
+    googleLogin(code, redirectUri)
+      .then(() => navigate('/'))
+      .catch((err) => console.error('Google signup failed:', err))
+      .finally(() => setGoogleLoading(false));
+  }, []);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setFormError('');
-
-    if (username.trim().length < 3) {
-      setFormError('Username must be at least 3 characters.');
-      return;
-    }
-    if (username.includes(' ')) {
-      setFormError('Username cannot contain spaces.');
-      return;
-    }
-    // Match backend requirement: 8+ chars, one uppercase, one number
-    if (password.length < 8) {
-      setFormError('Password must be at least 8 characters.');
-      return;
-    }
-    if (!/[A-Z]/.test(password)) {
-      setFormError('Password must contain at least one uppercase letter.');
-      return;
-    }
-    if (!/[0-9]/.test(password)) {
-      setFormError('Password must contain at least one number.');
-      return;
-    }
-
+    if (username.trim().length < 3) { setFormError('Username must be at least 3 characters.'); return; }
+    if (username.includes(' ')) { setFormError('Username cannot contain spaces.'); return; }
+    if (password.length < 8) { setFormError('Password must be at least 8 characters.'); return; }
+    if (!/[A-Z]/.test(password)) { setFormError('Password must contain at least one uppercase letter.'); return; }
+    if (!/[0-9]/.test(password)) { setFormError('Password must contain at least one number.'); return; }
     try {
       await register(username.trim(), email, password);
       navigate('/');
     } catch (err) {}
   };
 
-  // Popup mode — works on all browsers without redirect URI issues
-  const handleGoogleLogin = useGoogleLogin({
-    flow: 'auth-code',
-    onSuccess: async ({ code }) => {
-      setGoogleLoading(true);
-      try {
-        await googleLogin(code, window.location.origin + '/login');
-        navigate('/');
-      } catch (err) {
-        console.error('Google signup failed:', err);
-      } finally {
-        setGoogleLoading(false);
-      }
-    },
-    onError: (err) => console.error('Google signup error:', err),
-  });
+  const handleGoogleLogin = () => {
+    window.location.href = buildGoogleOAuthURL('/register');
+  };
 
   const displayError = formError || error;
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row">
-      {/* ── Left — Form ── */}
       <div className="w-full md:w-1/2 flex flex-col justify-center px-6 sm:px-12 lg:px-20 py-12" style={{ backgroundColor: '#ffffff' }}>
         <div className="w-full max-w-md mx-auto">
           <div className="mb-8">
@@ -80,9 +76,8 @@ const Register = () => {
             <p style={{ color: '#6b7280' }}>Start your journey to better productivity</p>
           </div>
 
-          {/* Google Button */}
           <button
-            onClick={() => handleGoogleLogin()}
+            onClick={handleGoogleLogin}
             disabled={googleLoading || loading}
             className="w-full flex items-center justify-center gap-3 px-4 py-3 border rounded-xl hover:bg-gray-50 transition-all mb-6 shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
             style={{ borderColor: '#d1d5db' }}
@@ -120,50 +115,32 @@ const Register = () => {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <Input
-                label=""
-                type="text"
-                value={username}
+              <Input label="" type="text" value={username}
                 onChange={(e) => setUsername(e.target.value.replace(/\s/g, ''))}
-                required
-                placeholder="Username (no spaces)"
+                required placeholder="Username (no spaces)"
                 className="w-full px-4 py-3 border rounded-xl transition-colors"
-                style={{ borderColor: '#d1d5db', backgroundColor: '#f9fafb', color: '#111827' }}
-              />
+                style={{ borderColor: '#d1d5db', backgroundColor: '#f9fafb', color: '#111827' }} />
               <p className="text-xs mt-1.5" style={{ color: '#9ca3af' }}>Min 3 characters, no spaces</p>
             </div>
 
-            <Input
-              label=""
-              type="email"
-              value={email}
+            <Input label="" type="email" value={email}
               onChange={(e) => setEmail(e.target.value)}
-              required
-              placeholder="Email address"
+              required placeholder="Email address"
               className="w-full px-4 py-3 border rounded-xl transition-colors"
-              style={{ borderColor: '#d1d5db', backgroundColor: '#f9fafb', color: '#111827' }}
-            />
+              style={{ borderColor: '#d1d5db', backgroundColor: '#f9fafb', color: '#111827' }} />
 
             <div>
-              <Input
-                label=""
-                type="password"
-                value={password}
+              <Input label="" type="password" value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                required
-                placeholder="Password"
+                required placeholder="Password"
                 className="w-full px-4 py-3 border rounded-xl transition-colors"
-                style={{ borderColor: '#d1d5db', backgroundColor: '#f9fafb', color: '#111827' }}
-              />
+                style={{ borderColor: '#d1d5db', backgroundColor: '#f9fafb', color: '#111827' }} />
               <p className="text-xs mt-1.5" style={{ color: '#9ca3af' }}>Min 8 characters, one uppercase, one number</p>
             </div>
 
-            <Button
-              type="submit"
-              className="w-full py-3.5 transition-all rounded-xl shadow-lg"
+            <Button type="submit" className="w-full py-3.5 transition-all rounded-xl shadow-lg"
               style={{ background: 'linear-gradient(to right, #3b82f6, #4f46e5)', boxShadow: '0 10px 15px -3px rgba(59, 130, 246, 0.3)' }}
-              loading={loading}
-            >
+              loading={loading}>
               <span className="flex items-center justify-center gap-2 font-medium text-white">
                 Create Account <ArrowRight size={18} />
               </span>
@@ -181,7 +158,6 @@ const Register = () => {
         </div>
       </div>
 
-      {/* ── Right — Visual ── */}
       <div className="hidden md:flex w-1/2 bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 relative overflow-hidden items-center justify-center">
         <div className="absolute inset-0 opacity-80">
           <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-400 rounded-full mix-blend-overlay filter blur-3xl animate-pulse"></div>
@@ -190,15 +166,13 @@ const Register = () => {
         </div>
         <div className="relative z-10 flex flex-col gap-6 px-12">
           <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-6 shadow-2xl border border-white/20">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
-                  <TrendingUp size={20} className="text-white" />
-                </div>
-                <div>
-                  <p className="text-white/70 text-sm">Productivity</p>
-                  <p className="text-white font-semibold text-lg">+78%</p>
-                </div>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
+                <TrendingUp size={20} className="text-white" />
+              </div>
+              <div>
+                <p className="text-white/70 text-sm">Productivity</p>
+                <p className="text-white font-semibold text-lg">+78%</p>
               </div>
             </div>
             <div className="flex items-end gap-2 h-16">
@@ -208,7 +182,7 @@ const Register = () => {
               <div className="w-8 bg-white/60 rounded-t-lg h-14"></div>
               <div className="w-8 bg-white/70 rounded-t-lg h-11"></div>
               <div className="w-8 bg-white/80 rounded-t-lg h-16"></div>
-              <div className="w-8 bg-white rounded-t-lg h-14"></div>
+              <div className="w-8 bg-white rounded-t-lg h-13"></div>
             </div>
           </div>
           <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-6 shadow-2xl border border-white/20">

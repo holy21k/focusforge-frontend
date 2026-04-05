@@ -1,11 +1,25 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../store/authStore';
-import { useGoogleLogin } from '@react-oauth/google';
 import Input from '../common/Input';
 import Button from '../common/Button';
 import UnionLogo from '../../Union.svg';
 import { Mail, Lock, ArrowRight, BarChart3, TrendingUp } from 'lucide-react';
+
+const GOOGLE_CLIENT_ID = '620637746282-58n4pf0mm9vfij0dnsgbi6fdhim5ahp2.apps.googleusercontent.com';
+
+function buildGoogleOAuthURL(redirectPath = '/login') {
+  const redirectUri = window.location.origin + redirectPath;
+  const params = new URLSearchParams({
+    client_id: GOOGLE_CLIENT_ID,
+    redirect_uri: redirectUri,
+    response_type: 'code',
+    scope: 'openid email profile',
+    access_type: 'offline',
+    prompt: 'select_account',
+  });
+  return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+}
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -13,6 +27,20 @@ const Login = () => {
   const [googleLoading, setGoogleLoading] = useState(false);
   const { login, googleLogin, loading, error } = useAuth();
   const navigate = useNavigate();
+
+  // Handle Google redirect callback
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
+    if (!code) return;
+    window.history.replaceState({}, document.title, '/login');
+    setGoogleLoading(true);
+    const redirectUri = window.location.origin + '/login';
+    googleLogin(code, redirectUri)
+      .then(() => navigate('/'))
+      .catch((err) => console.error('Google login failed:', err))
+      .finally(() => setGoogleLoading(false));
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -22,22 +50,9 @@ const Login = () => {
     } catch (err) {}
   };
 
-  // Popup mode — works on all browsers without redirect URI issues
-  const handleGoogleLogin = useGoogleLogin({
-    flow: 'auth-code',
-    onSuccess: async ({ code }) => {
-      setGoogleLoading(true);
-      try {
-        await googleLogin(code, window.location.origin + '/login');
-        navigate('/');
-      } catch (err) {
-        console.error('Google login failed:', err);
-      } finally {
-        setGoogleLoading(false);
-      }
-    },
-    onError: (err) => console.error('Google login error:', err),
-  });
+  const handleGoogleLogin = () => {
+    window.location.href = buildGoogleOAuthURL('/login');
+  };
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row">
@@ -52,7 +67,7 @@ const Login = () => {
           </div>
 
           <button
-            onClick={() => handleGoogleLogin()}
+            onClick={handleGoogleLogin}
             disabled={googleLoading || loading}
             className="w-full flex items-center justify-center gap-3 px-4 py-3 border rounded-xl hover:bg-gray-50 transition-all mb-6 shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
             style={{ borderColor: '#d1d5db' }}
@@ -114,7 +129,7 @@ const Login = () => {
                 <input type="checkbox" className="w-4 h-4 rounded" style={{ borderColor: '#d1d5db' }} />
                 <span style={{ color: '#4b5563' }} className="text-sm">Remember me</span>
               </label>
-              <a href="#" className="text-sm font-medium transition-colors" style={{ color: '#2563eb' }}>Forgot password?</a>
+              <a href="#" className="text-sm font-medium" style={{ color: '#2563eb' }}>Forgot password?</a>
             </div>
 
             <Button type="submit" className="w-full py-3.5 transition-all rounded-xl shadow-lg" style={{ background: 'linear-gradient(to right, #3b82f6, #4f46e5)' }} loading={loading}>
@@ -138,20 +153,18 @@ const Login = () => {
       <div className="hidden md:flex w-1/2 bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 relative overflow-hidden items-center justify-center">
         <div className="absolute inset-0 opacity-80">
           <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-400 rounded-full mix-blend-overlay filter blur-3xl animate-pulse"></div>
-          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-indigo-400 rounded-full mix-blend-overlay filter blur-3xl animate-pulse animation-delay-2000"></div>
-          <div className="absolute top-1/2 left-1/2 w-80 h-80 bg-purple-400 rounded-full mix-blend-overlay filter blur-3xl animate-pulse animation-delay-4000"></div>
+          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-indigo-400 rounded-full mix-blend-overlay filter blur-3xl animate-pulse"></div>
+          <div className="absolute top-1/2 left-1/2 w-80 h-80 bg-purple-400 rounded-full mix-blend-overlay filter blur-3xl animate-pulse"></div>
         </div>
         <div className="relative z-10 flex flex-col gap-6 px-12">
           <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-6 shadow-2xl border border-white/20">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
-                  <TrendingUp size={20} className="text-white" />
-                </div>
-                <div>
-                  <p className="text-white/70 text-sm">Productivity</p>
-                  <p className="text-white font-semibold text-lg">+78%</p>
-                </div>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
+                <TrendingUp size={20} className="text-white" />
+              </div>
+              <div>
+                <p className="text-white/70 text-sm">Productivity</p>
+                <p className="text-white font-semibold text-lg">+78%</p>
               </div>
             </div>
             <div className="flex items-end gap-2 h-16">
